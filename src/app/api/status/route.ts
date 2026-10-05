@@ -5,7 +5,7 @@
  * as an instruction instead of a stack trace in a chart.
  */
 import { listTables, target, ZsqlError } from '@/lib/zsql';
-import { warehouseIsReachable, warehousePath } from '@/lib/warehouse';
+import { warehouseCheck, warehousePath } from '@/lib/warehouse';
 import { providerStatus } from '@/lib/providers';
 
 export const runtime = 'nodejs';
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const [warehouse, semantic] = await Promise.all([
-    warehouseIsReachable(),
+    warehouseCheck(),
     listTables().then(
       (tables) => ({ ok: true as const, tables: tables.length }),
       (error: unknown) => ({
@@ -30,7 +30,7 @@ export async function GET() {
     // `llm` is the chat model; `model` is the semantic model. Two different
     // things called "model", so they get different names on the wire.
     llm: providerStatus(),
-    warehouse: { ok: warehouse, path: warehousePath.replace(process.cwd(), '.') },
+    warehouse: { ...warehouse, path: warehousePath.replace(process.cwd(), '.') },
     model: semantic,
   });
 }

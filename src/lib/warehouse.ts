@@ -27,7 +27,16 @@ let pending: Promise<DuckDBConnection> | null = null;
 function connection(): Promise<DuckDBConnection> {
   // One cached connection per server process. `fromCache` keeps a single
   // instance per file, which matters under Next's dev-mode module reloading.
-  pending ??= DuckDBInstance.fromCache(dbPath).then((instance) => instance.connect());
+  //
+  // READ_ONLY on purpose. 0sql plans SELECTs and this app runs them, so the
+  // write lock would buy nothing — and DuckDB allows one writer per file, so
+  // taking it means a second `npm run dev`, or one left running in another
+  // terminal, locks the dashboard out. Read-only also refuses to create an
+  // empty database when the file is missing, which turns "run npm run seed"
+  // into the error you actually get instead of "table not found".
+  pending ??= DuckDBInstance.fromCache(dbPath, { access_mode: 'READ_ONLY' }).then((instance) =>
+    instance.connect(),
+  );
   return pending;
 }
 
@@ -44,12 +53,17 @@ export async function runSql(sql: string): Promise<ResultSet> {
   };
 }
 
-export async function warehouseIsReachable(): Promise<boolean> {
+/** For the status route: the reason, not just the verdict. */
+export async function warehouseCheck(): Promise<{ ok: boolean; error?: string }> {
   try {
     await runSql('SELECT 1');
-    return true;
-  } catch {
-    return false;
+    return { ok: true };
+  } catch (error) {
+    // The connection promise is cached, so a failed first open would stick for
+    // the life of the process. Drop it and let the next call try again.
+    pending = null;
+    const message = error instanceof Error ? error.message.split('\n')[0] : String(error);
+    return { ok: false, error: message };
   }
 }
 

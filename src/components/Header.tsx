@@ -17,7 +17,7 @@ interface Status {
   branch: string;
   apiBase: string;
   llm: { provider: string | null; model: string | null };
-  warehouse: { ok: boolean; path: string };
+  warehouse: { ok: boolean; error?: string; path: string };
   model: { ok: true; tables: number } | { ok: false; error: string };
 }
 
@@ -41,7 +41,8 @@ export function Header({
   const problems = status
     ? [
         !status.llm.provider && 'no model key: set ANTHROPIC_API_KEY or OPENAI_API_KEY',
-        !status.warehouse.ok && `no warehouse at ${status.warehouse.path} — run npm run seed`,
+        !status.warehouse.ok &&
+          `warehouse ${status.warehouse.path}: ${status.warehouse.error ?? 'unreachable'} — run npm run seed, and check no other dev server holds it`,
         !status.model.ok && status.model.error,
       ].filter(Boolean as unknown as (v: unknown) => v is string)
     : [];

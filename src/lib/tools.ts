@@ -359,7 +359,10 @@ export async function runTool(
   } catch (error) {
     if (error instanceof ZsqlError) {
       // The interesting case: 0sql refused the spec. The class says why, and
-      // the model can usually fix it on the next turn.
+      // the model can usually fix it on the next turn. Logged because watching
+      // what the model got wrong, and what it does next, is half the point of
+      // running this demo.
+      console.warn(`[0sql] ${error.errorClass}: ${error.message}\n  spec: ${JSON.stringify(rawInput)}`);
       return {
         content: `0sql refused this request — ${error.errorClass}: ${error.message}`,
         isError: true,

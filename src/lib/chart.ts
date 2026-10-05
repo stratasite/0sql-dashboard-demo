@@ -22,11 +22,19 @@ function isNumericColumn(result: ResultSet, column: string): boolean {
   return seen.length > 0 && seen.every((r) => asNumber(r[column]) !== null);
 }
 
-/** The category column and the numeric columns, in projection order. */
-export function series(result: ResultSet): { categoryKey: string | null; valueKeys: string[] } {
+/** The category column, every other non-numeric column, and the measures. */
+export function series(result: ResultSet): {
+  categoryKey: string | null;
+  valueKeys: string[];
+  extraCategoryKeys: string[];
+} {
   const valueKeys = result.columns.filter((c) => isNumericColumn(result, c));
-  const categoryKey = result.columns.find((c) => !valueKeys.includes(c)) ?? null;
-  return { categoryKey, valueKeys };
+  const categories = result.columns.filter((c) => !valueKeys.includes(c));
+  return {
+    categoryKey: categories[0] ?? null,
+    valueKeys,
+    extraCategoryKeys: categories.slice(1),
+  };
 }
 
 /**
@@ -36,7 +44,13 @@ export function series(result: ResultSet): { categoryKey: string | null; valueKe
 export function inferChart(wanted: ChartKind, result: ResultSet): ChartKind {
   if (result.rows.length === 0) return 'table';
 
-  const { categoryKey, valueKeys } = series(result);
+  const { categoryKey, valueKeys, extraCategoryKeys } = series(result);
+
+  // Two dimensions in one result (week × call center) would need the second
+  // pivoted into series to draw honestly. Drawing it as one line instead
+  // repeats the x labels and joins points that belong to different sites, so
+  // the table is what we show. Pivoting is the obvious next feature.
+  if (extraCategoryKeys.length > 0 && wanted !== 'number') return 'table';
 
   if (wanted === 'number') {
     return result.rows.length === 1 && valueKeys.length >= 1 ? 'number' : 'table';

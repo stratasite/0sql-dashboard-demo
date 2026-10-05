@@ -30,6 +30,11 @@ import { asNumber, formatCategory, formatValue, series as splitSeries } from '@/
 
 const SERIES = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
 
+// Tiles re-plan and redraw on every load, and a chart that grows out of the
+// axis on arrival is a chart you cannot read for the first second. It also
+// never finishes in a background tab, so a tile can sit there half-drawn.
+const ANIMATE = false;
+
 const axis = {
   stroke: 'var(--border)',
   tick: { fill: 'var(--muted-foreground)', fontSize: 11 },
@@ -123,6 +128,7 @@ export function ChartView({
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--surface)' }}
+                isAnimationActive={ANIMATE}
               />
             ))}
           </LineChart>
@@ -138,6 +144,7 @@ export function ChartView({
                 strokeWidth={2}
                 fill={SERIES[i % SERIES.length]}
                 fillOpacity={0.12}
+                isAnimationActive={ANIMATE}
               />
             ))}
           </AreaChart>
@@ -145,7 +152,13 @@ export function ChartView({
           <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }} barGap={2}>
             {common}
             {valueKeys.map((key, i) => (
-              <Bar key={key} dataKey={key} fill={SERIES[i % SERIES.length]} radius={[4, 4, 0, 0]}>
+              <Bar
+                key={key}
+                dataKey={key}
+                fill={SERIES[i % SERIES.length]}
+                radius={[4, 4, 0, 0]}
+                isAnimationActive={ANIMATE}
+              >
                 {valueKeys.length === 1 &&
                   data.map((_, index) => (
                     <Cell key={index} stroke="var(--surface)" strokeWidth={2} />
