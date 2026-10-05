@@ -147,7 +147,7 @@ export function Chat({
   }
 
   return (
-    <section className="flex min-h-0 flex-col">
+    <section className="flex h-full min-h-0 flex-col">
       <header className="flex items-baseline justify-between border-b border-border px-4 py-3">
         <h2 className="font-mono text-sm">ask</h2>
         {entries.length > 0 && (

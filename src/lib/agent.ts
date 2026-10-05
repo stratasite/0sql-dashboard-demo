@@ -73,7 +73,9 @@ export async function runAgent({
     const stream = client.messages.stream(
       {
         model: MODEL,
-        max_tokens: 8192,
+        // Thinking tokens count against this, and a long spec is a long tool
+        // input; 16k leaves room so a turn is never truncated mid-argument.
+        max_tokens: 16000,
         // The catalogue and the tool list are the same bytes on every request,
         // so the whole prefix is a cache hit after the first turn.
         system: [
