@@ -1,0 +1,623 @@
+# Contact fact — one row per customer service contact (call, chat, etc.).
+# Grain: contact_code. ~5k rows spanning 2026-03-29 to 2026-09-27 in the sample warehouse.
+datasource: cs_duckdb
+name: Contact
+physical_name: cs_contact_f
+description: Customer service contacts at contact grain, with routing, handling durations, outcomes, tags, and cost.
+cost: 100
+
+fields:
+  # ------------------------------------------------------------------ keys
+  - type: dimension
+    name: Contact Code
+    data_type: string
+    description: Unique contact identifier.
+    expression:
+      sql: contact_code
+      lookup: true
+      primary_key: true
+
+  - type: dimension
+    name: BPO Contact Code
+    data_type: string
+    description: Contact identifier in the BPO vendor's system.
+    expression:
+      sql: bpo_contact_code
+
+  - type: dimension
+    name: First Ticket ID
+    data_type: string
+    expression:
+      sql: first_ticket_id
+
+  # ------------------------------------------------------------------ dates / times
+  - type: dimension
+    name: Contact Date
+    data_type: date
+    description: UTC date of the contact.
+    grains: [day, week, month, quarter, year]
+    expression:
+      sql: fact_utc_date
+      lookup: true
+
+  - type: dimension
+    name: Contact Start Time
+    data_type: date_time
+    grains: [day, week, month, quarter, year]
+    expression:
+      sql: contact_start_ts
+
+  - type: dimension
+    name: Contact End Time
+    data_type: date_time
+    grains: [day, week, month, quarter, year]
+    expression:
+      sql: contact_end_ts
+
+  - type: dimension
+    name: UTC Half Hour
+    data_type: string
+    description: Half-hour bucket (HH:MM, UTC) in which the contact started.
+    expression:
+      sql: utc_half_hour_code
+      lookup: true
+
+  # ------------------------------------------------------------------ foreign keys
+  - type: dimension
+    name: Call Center ID
+    data_type: string
+    description: Call center that handled the contact.
+    expression:
+      sql: call_center_id
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center ID
+    data_type: string
+    description: Call center the contact was escalated to; null when not escalated.
+    expression:
+      sql: escalating_call_center_id
+      lookup: true
+
+  - type: dimension
+    name: Contact Subchannel ID
+    data_type: string
+    expression:
+      sql: contact_subchannel_id
+      lookup: true
+
+  - type: dimension
+    name: Contact Skill ID
+    data_type: string
+    expression:
+      sql: contact_skill_id
+      lookup: true
+
+  - type: dimension
+    name: Transfer Type ID
+    data_type: string
+    expression:
+      sql: transfer_type_id
+      lookup: true
+
+  - type: dimension
+    name: Account ID
+    data_type: bigint
+    expression:
+      sql: account_id
+
+  - type: dimension
+    name: Subscription ID
+    data_type: bigint
+    expression:
+      sql: subscrn_id
+
+  - type: dimension
+    name: Current Subscription ID
+    data_type: bigint
+    expression:
+      sql: current_subscription_id
+
+  - type: dimension
+    name: Current Plan ID
+    data_type: bigint
+    expression:
+      sql: current_plan_id
+      lookup: true
+
+  - type: dimension
+    name: Plan ID
+    data_type: bigint
+    expression:
+      sql: plan_id
+      lookup: true
+
+  # ------------------------------------------------------------------ customer attributes
+  - type: dimension
+    name: Has DVD Plan
+    data_type: integer
+    description: 1 if the customer had a DVD plan at contact time, else 0.
+    expression:
+      sql: has_dvd_plan
+      lookup: true
+
+  - type: dimension
+    name: Member Type
+    data_type: string
+    description: Customer membership status at contact time (e.g. Current Member, Former Member).
+    expression:
+      sql: member_type_desc
+      lookup: true
+
+  - type: dimension
+    name: Customer Lookup Type
+    data_type: string
+    description: How the customer was identified (e.g. Authenticated).
+    expression:
+      sql: customer_lookup_type
+      lookup: true
+
+  - type: dimension
+    name: Contact Origin Country Code
+    data_type: string
+    description: Country the contact originated from.
+    expression:
+      sql: contact_origin_country_code
+      lookup: true
+
+  - type: dimension
+    name: Toll Free Number
+    data_type: string
+    expression:
+      sql: toll_free_nbr
+      lookup: true
+
+  - type: dimension
+    name: In-App Provider ID
+    data_type: string
+    description: App store provider for in-app contacts (e.g. appstore_a, appstore_g).
+    expression:
+      sql: inapp_provider_id
+      lookup: true
+
+  # ------------------------------------------------------------------ outcome / disposition
+  - type: dimension
+    name: Chat End State
+    data_type: string
+    description: How a chat ended (Agent Ended, Customer Ended, Abandoned, Timed Out).
+    expression:
+      sql: chat_end_state_desc
+      lookup: true
+
+  - type: dimension
+    name: Ticket Disposition Level 0
+    data_type: string
+    expression:
+      sql: ticket_disposition_level0_desc
+      lookup: true
+
+  - type: dimension
+    name: Ticket Disposition Level 1
+    data_type: string
+    expression:
+      sql: ticket_disposition_level1_desc
+      lookup: true
+
+  - type: dimension
+    name: Ticket Disposition Level 2
+    data_type: string
+    expression:
+      sql: ticket_disposition_level2_desc
+      lookup: true
+
+  - type: dimension
+    name: Ticket Resolution Gate
+    data_type: string
+    description: Resolution outcome (Resolved, Escalated, Follow-up Required, Referred Externally, Customer Education).
+    expression:
+      sql: ticket_resolution_gate_desc
+      lookup: true
+
+  - type: dimension
+    name: Is Referred Externally
+    data_type: integer
+    expression:
+      sql: is_referred_externally
+      lookup: true
+
+  - type: dimension
+    name: Is Assistance Requested
+    data_type: integer
+    expression:
+      sql: is_assistance_requested
+      lookup: true
+
+  - type: dimension
+    name: Is Secondary Skill Contact
+    data_type: integer
+    expression:
+      sql: is_secondary_skill_contact
+      lookup: true
+
+  - type: dimension
+    name: Deferred Cancel Reasons
+    data_type: string
+    expression:
+      sql: deferred_cancel_reasons
+      lookup: true
+
+  - type: dimension
+    name: Deferred Cancel Reason Other
+    data_type: string
+    expression:
+      sql: deferred_cancel_reason_other
+
+  - type: dimension
+    name: Immediate Cancel Reasons
+    data_type: string
+    expression:
+      sql: immediate_cancel_reasons
+      lookup: true
+
+  - type: dimension
+    name: Immediate Cancel Reason Other
+    data_type: string
+    expression:
+      sql: immediate_cancel_reason_other
+
+  # ------------------------------------------------------------------ agent
+  - type: dimension
+    name: Agent Role Code
+    data_type: string
+    description: Role of the handling agent (e.g. CSR1, CSR2).
+    expression:
+      sql: agent_role_code
+      lookup: true
+
+  - type: dimension
+    name: Agent User ID
+    data_type: string
+    expression:
+      sql: agent_user_id
+      lookup: true
+
+  - type: dimension
+    name: Supervisor User ID
+    data_type: string
+    expression:
+      sql: supervisor_user_id
+      lookup: true
+
+  - type: dimension
+    name: Manager User ID
+    data_type: string
+    expression:
+      sql: manager_user_id
+      lookup: true
+
+  - type: dimension
+    name: Workplace
+    data_type: string
+    description: Where the agent worked the contact (e.g. Onsite, Remote).
+    expression:
+      sql: workplace
+      lookup: true
+
+  # ------------------------------------------------------------------ tags
+  - type: dimension
+    name: Tag Primary Title
+    data_type: string
+    expression:
+      sql: tag_primary_title
+      lookup: true
+
+  - type: dimension
+    name: Tag Titles
+    data_type: string
+    expression:
+      sql: tag_titles
+
+  - type: dimension
+    name: Tag Primary Hashtag
+    data_type: string
+    expression:
+      sql: tag_primary_hashtag
+      lookup: true
+
+  - type: dimension
+    name: Tag Hashtags
+    data_type: string
+    expression:
+      sql: tag_hashtags
+
+  - type: dimension
+    name: Tag Primary MOP
+    data_type: string
+    description: Primary method-of-payment tag.
+    expression:
+      sql: tag_primary_mop
+      lookup: true
+
+  - type: dimension
+    name: Tag MOPs
+    data_type: string
+    expression:
+      sql: tag_mops
+
+  - type: dimension
+    name: Tag Primary Error
+    data_type: string
+    expression:
+      sql: tag_primary_error
+      lookup: true
+
+  - type: dimension
+    name: Tag Errors
+    data_type: string
+    expression:
+      sql: tag_errors
+
+  - type: dimension
+    name: Tag Primary Device Model ID
+    data_type: string
+    expression:
+      sql: tag_primary_device_model_id
+      lookup: true
+
+  - type: dimension
+    name: Tag Device Model IDs
+    data_type: string
+    expression:
+      sql: tag_device_model_ids
+
+  - type: dimension
+    name: Tag Primary Device Type ID
+    data_type: string
+    expression:
+      sql: tag_primary_device_type_id
+      lookup: true
+
+  - type: dimension
+    name: Tag Device Type IDs
+    data_type: string
+    expression:
+      sql: tag_device_type_ids
+
+  # ------------------------------------------------------------------ ATO (account takeover) model
+  - type: dimension
+    name: ATO Label
+    data_type: string
+    description: Account-takeover classification of the contact (ATO / NOT_ATO).
+    expression:
+      sql: ato_label
+      lookup: true
+
+  - type: dimension
+    name: ATO Model Version
+    data_type: string
+    expression:
+      sql: ato_model_version
+      lookup: true
+
+  # ================================================================== measures
+  # --- volume
+  - type: measure
+    name: Contacts
+    data_type: bigint
+    description: Number of contacts.
+    expression:
+      sql: count(*)
+
+  - type: measure
+    name: Answered Count
+    data_type: bigint
+    expression:
+      sql: sum(answered_cnt)
+
+  - type: measure
+    name: Answered In SLA Count
+    data_type: bigint
+    expression:
+      sql: sum(answered_in_sla_cnt)
+
+  - type: measure
+    name: Abandoned In SLA Count
+    data_type: bigint
+    expression:
+      sql: sum(abandoned_in_sla_cnt)
+
+  - type: measure
+    name: Gateway Count
+    data_type: bigint
+    expression:
+      sql: sum(gateway_cnt)
+
+  - type: measure
+    name: Gateway Abandoned Count
+    data_type: bigint
+    expression:
+      sql: sum(gateway_abandoned_cnt)
+
+  - type: measure
+    name: Offered To BPO Count
+    data_type: bigint
+    expression:
+      sql: sum(offerred_to_bpo_cnt)
+
+  - type: measure
+    name: BPO Switch Count
+    data_type: bigint
+    expression:
+      sql: sum(bpo_switch_cnt)
+
+  - type: measure
+    name: BPO Switch Abandoned Count
+    data_type: bigint
+    expression:
+      sql: sum(bpo_switch_abandoned_cnt)
+
+  - type: measure
+    name: BPO Skill Count
+    data_type: bigint
+    expression:
+      sql: sum(bpo_skill_cnt)
+
+  - type: measure
+    name: BPO Skill Abandoned Count
+    data_type: bigint
+    expression:
+      sql: sum(bpo_skill_abandoned_cnt)
+
+  - type: measure
+    name: Customer Message Count
+    data_type: bigint
+    expression:
+      sql: sum(cust_msg_cnt)
+
+  - type: measure
+    name: Agent Response Count
+    data_type: bigint
+    expression:
+      sql: sum(agent_response_cnt)
+
+  # --- durations (seconds)
+  - type: measure
+    name: Contact Duration Secs
+    data_type: bigint
+    description: Total end-to-end contact duration in seconds.
+    expression:
+      sql: sum(contact_duration_secs)
+
+  - type: measure
+    name: Gateway Duration Secs
+    data_type: bigint
+    expression:
+      sql: sum(gateway_duration_secs)
+
+  - type: measure
+    name: BPO Duration Secs
+    data_type: bigint
+    expression:
+      sql: sum(bpo_duration_secs)
+
+  - type: measure
+    name: Customer Queue Duration Secs
+    data_type: bigint
+    expression:
+      sql: sum(customer_queue_duration_secs)
+
+  - type: measure
+    name: Customer Hold Duration Secs
+    data_type: bigint
+    expression:
+      sql: sum(customer_hold_duration_secs)
+
+  - type: measure
+    name: Talk Duration Secs
+    data_type: bigint
+    expression:
+      sql: sum(talk_duration_secs)
+
+  - type: measure
+    name: ACW Duration Secs
+    data_type: bigint
+    description: After-call work time in seconds.
+    expression:
+      sql: sum(acw_duration_secs)
+
+  - type: measure
+    name: Consult Duration Secs
+    data_type: bigint
+    expression:
+      sql: sum(consult_duration_secs)
+
+  - type: measure
+    name: Answer Hold Duration Secs
+    data_type: bigint
+    expression:
+      sql: sum(answer_hold_duration_secs)
+
+  - type: measure
+    name: Agent Response Secs
+    data_type: bigint
+    expression:
+      sql: sum(agent_response_sec)
+
+  - type: measure
+    name: Average Contact Duration Secs
+    data_type: decimal
+    description: Mean contact duration per contact.
+    expression:
+      sql: sum(contact_duration_secs) * 1.0 / nullif(count(*), 0)
+
+  # --- tickets / makegoods
+  - type: measure
+    name: Ticket Count
+    data_type: bigint
+    expression:
+      sql: sum(ticket_cnt)
+
+  - type: measure
+    name: Makegood Amount
+    data_type: decimal
+    description: Total credits or refunds issued as makegoods.
+    expression:
+      sql: sum(makegood_amt)
+
+  - type: measure
+    name: Makegood Ticket Count
+    data_type: bigint
+    expression:
+      sql: sum(makegood_ticket_cnt)
+
+  # --- knowledge base
+  - type: measure
+    name: KB Articles Used Count
+    data_type: bigint
+    expression:
+      sql: sum(kb_articles_used_cnt)
+
+  - type: measure
+    name: KB Search Count
+    data_type: bigint
+    expression:
+      sql: sum(kb_search_cnt)
+
+  # --- cost (USD)
+  # Tagged `cost-sensitive`: the Regional Cost Visibility policy in
+  # security.yml filters these to the caller's regions at plan time.
+  - type: measure
+    name: CSR1 Cost USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    expression:
+      sql: sum(csr1_cost_usd)
+
+  - type: measure
+    name: CSR2 Cost USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    expression:
+      sql: sum(csr2_cost_usd)
+
+  - type: measure
+    name: Non-BPO Cost USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    expression:
+      sql: sum(non_bpo_cost_usd)
+
+  - type: measure
+    name: Telecom Cost USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    expression:
+      sql: sum(telecom_cost_usd)
+
+  - type: measure
+    name: Total Contact Cost USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    description: CSR1 + CSR2 + non-BPO + telecom cost.
+    expression:
+      sql: sum(coalesce(csr1_cost_usd, 0) + coalesce(csr2_cost_usd, 0) + coalesce(non_bpo_cost_usd, 0) + coalesce(telecom_cost_usd, 0))

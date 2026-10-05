@@ -1,0 +1,10 @@
+# 0sql never connects to a warehouse. It needs the adapter so it emits the
+# right dialect; the rest is metadata for your own application to read.
+#
+# The demo app reads DUCKDB_PATH from .env.local, not this file.
+cs_duckdb:
+  name: CS Warehouse
+  description: Synthetic customer service analytics mart shipped with this repo.
+  adapter: duckdb
+  tier: hot
+  file: ./warehouse/cs_warehouse.duckdb

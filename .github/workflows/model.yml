@@ -1,0 +1,40 @@
+# The semantic model is code: validate it on every pull request, deploy it on
+# merge. `zsql check` runs the planner tests on the service and exits non-zero
+# when one fails, which is what makes this a gate.
+#
+# Needs one secret: ZSQL_API_KEY, a personal key (zsk_…) with write access to
+# the project. Query keys cannot deploy.
+name: model
+
+on:
+  pull_request:
+    paths: ['semantic/**', '.github/workflows/model.yml']
+  push:
+    branches: [main]
+    paths: ['semantic/**', '.github/workflows/model.yml']
+
+env:
+  ZSQL_API_KEY: ${{ secrets.ZSQL_API_KEY }}
+  ZSQL_SERVER: https://app.0sql.io
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install zsql
+        run: curl -fsSL https://0sql.io/install.sh | sh
+      - name: Validate the model and run its tests
+        # CI checkouts are detached, so pass the branch explicitly.
+        run: zsql check --project semantic --branch "${{ github.head_ref }}"
+
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install zsql
+        run: curl -fsSL https://0sql.io/install.sh | sh
+      - name: Deploy to customer-service/main
+        run: zsql deploy --project semantic --branch "${{ github.ref_name }}"

@@ -1,0 +1,80 @@
+# Role-playing alias of the Call Center dimension for the call center a contact
+# was escalated to (cs_contact_f.escalating_call_center_id). Same physical table
+# as "Call Center"; all dimension names are prefixed with "Escalating".
+datasource: cs_duckdb
+name: Escalating Call Center
+physical_name: cs_call_center_d
+description: The call center a contact was escalated to. Same site list as Call Center, in the escalation role.
+cost: 10
+
+fields:
+  - type: dimension
+    name: Escalating Call Center ID
+    data_type: string
+    expression:
+      sql: call_center_id
+      lookup: true
+      primary_key: true
+
+  - type: dimension
+    name: Escalating Call Center
+    data_type: string
+    expression:
+      sql: call_center_desc
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center Long Description
+    data_type: string
+    expression:
+      sql: call_center_long_desc
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center BPO
+    data_type: string
+    expression:
+      sql: bpo_id
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center Site Location
+    data_type: string
+    expression:
+      sql: site_loc
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center Region
+    data_type: string
+    expression:
+      sql: region
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center City
+    data_type: string
+    expression:
+      sql: city
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center State Code
+    data_type: string
+    expression:
+      sql: state_code
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center Country Code
+    data_type: string
+    expression:
+      sql: country_code
+      lookup: true
+
+  - type: dimension
+    name: Escalating Call Center Country
+    data_type: string
+    expression:
+      sql: country_desc
+      lookup: true

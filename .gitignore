@@ -1,0 +1,19 @@
+# Keys. `zsql auth` writes semantic/.zsql; it holds an API key and must never
+# be committed.
+.zsql
+.strata
+
+node_modules/
+.next/
+out/
+.env.local
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+
+# The dashboard people build while trying the demo.
+data/tiles.json
+
+# Written by `npm run seed` from warehouse/data/*.parquet. The committed copy
+# below it is a convenience; re-seed to re-anchor the dates on today.
+warehouse/*.duckdb.wal

@@ -1,0 +1,110 @@
+# Call Center dimension — one row per customer service site (in-house or BPO).
+datasource: cs_duckdb
+name: Call Center
+physical_name: cs_call_center_d
+description: Customer service call center sites, including BPO vendor, location, region, and launch/closure dates.
+cost: 10
+
+fields:
+  - type: dimension
+    name: Call Center ID
+    data_type: string
+    description: Call center identifier (e.g. CC01).
+    expression:
+      sql: call_center_id
+      lookup: true
+      primary_key: true
+
+  - type: dimension
+    name: Call Center
+    data_type: string
+    description: Short call center name, typically the city (e.g. Manila, Lisbon).
+    expression:
+      sql: call_center_desc
+      lookup: true
+
+  - type: dimension
+    name: Call Center Long Description
+    data_type: string
+    description: Vendor, city and country combined (e.g. "Telvanta - Manila (PH)").
+    expression:
+      sql: call_center_long_desc
+      lookup: true
+
+  - type: dimension
+    name: BPO
+    data_type: string
+    description: Business process outsourcing vendor operating the site, or INHOUSE.
+    expression:
+      sql: bpo_id
+      lookup: true
+
+  - type: dimension
+    name: Call Center Site Location
+    data_type: string
+    expression:
+      sql: site_loc
+      lookup: true
+
+  - type: dimension
+    name: Call Center Region
+    data_type: string
+    description: Geographic region of the site (AMER, EMEA, APAC).
+    expression:
+      sql: region
+      lookup: true
+
+  - type: dimension
+    name: Call Center Street Address
+    data_type: string
+    expression:
+      sql: street_address
+
+  - type: dimension
+    name: Call Center City
+    data_type: string
+    expression:
+      sql: city
+      lookup: true
+
+  - type: dimension
+    name: Call Center State Code
+    data_type: string
+    expression:
+      sql: state_code
+      lookup: true
+
+  - type: dimension
+    name: Call Center Postal Code
+    data_type: string
+    expression:
+      sql: postal_code
+
+  - type: dimension
+    name: Call Center Country Code
+    data_type: string
+    expression:
+      sql: country_code
+      lookup: true
+
+  - type: dimension
+    name: Call Center Country
+    data_type: string
+    expression:
+      sql: country_desc
+      lookup: true
+
+  - type: dimension
+    name: Call Center Launch Date
+    data_type: date
+    grains: [day, week, month, quarter, year]
+    expression:
+      sql: launch_date
+
+  - type: dimension
+    name: Call Center Closure Date
+    data_type: date
+    description: Date the site was closed; null while the site is active.
+    grains: [day, week, month, quarter, year]
+    expression:
+      sql: closure_date

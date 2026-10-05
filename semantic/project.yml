@@ -1,0 +1,15 @@
+# The 0sql project this demo queries. Deploy it with:
+#
+#   zsql auth --api-key zsk_… --server https://app.0sql.io
+#   zsql deploy --dir semantic
+#
+# `uid` is what the project is called in every request URL:
+#   POST /projects/customer-service/branches/main/sql
+name: Customer Service Analytics
+uid: customer-service
+description: Customer contact and help center traffic at contact grain.
+
+# The branch the demo app reads. Deploy from a git branch of the same name.
+production_branch: main
+server: https://app.0sql.io
+git: git@github.com:stratasite/0sql-dashboard-demo

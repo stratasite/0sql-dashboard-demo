@@ -1,0 +1,23 @@
+# Row-level security, compiled into the SQL at plan time.
+#
+# Cost measures in tbl.contact.yml are tagged `cost-sensitive`. Any query that
+# projects one is filtered to the regions the caller is allowed to see, resolved
+# from the `region:` tags on the caller's groups. The demo app sends that context
+# on every request (src/lib/users.ts); the chat agent cannot opt out of it,
+# because the policy lives here and not in the prompt.
+#
+# A branch with policies refuses to plan without a context: 400 ContextRequired.
+policies:
+  - name: Regional Cost Visibility
+    mode: filter_data
+    triggers:
+      field_tags: [cost-sensitive]
+    context_dimension: Call Center Region
+    permission_resolution:
+      source: groups
+      value_from: tag
+      tag_key: region
+      unresolved: deny
+    bypass:
+      system_admin: true
+      project_admin: true

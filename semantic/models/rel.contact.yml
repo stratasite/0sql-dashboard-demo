@@ -1,0 +1,18 @@
+# Joins from the Contact fact to its dimensions.
+datasource: cs_duckdb
+
+contact_to_call_center:
+  left: Contact
+  right: Call Center
+  sql: "left.call_center_id = right.call_center_id"
+  cardinality: many_to_one
+  join: left
+
+# Second FK to the same physical table -> role-playing dimension.
+# Left join so non-escalated contacts (escalating_call_center_id is null) are kept.
+contact_to_escalating_call_center:
+  left: Contact
+  right: Escalating Call Center
+  sql: "left.escalating_call_center_id = right.call_center_id"
+  cardinality: many_to_one
+  join: left

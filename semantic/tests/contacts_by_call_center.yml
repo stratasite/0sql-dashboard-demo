@@ -1,0 +1,7 @@
+# Planner assertions run on every `zsql deploy`, `zsql check` and `zsql test`.
+# They catch a changed join route or a lost aggregate before the app sees it.
+name: contacts by call center
+projections:
+  - Call Center
+  - Contacts
+assert_regex: count\(\*\).*cs_contact_f.*join cs_call_center_d

@@ -1,0 +1,5 @@
+name: average handle time by day
+projections:
+  - Contact Date
+  - Average Contact Duration Secs
+assert_regex: sum\(.*contact_duration_secs.*\).*nullif\(count\(\*\), 0\)
