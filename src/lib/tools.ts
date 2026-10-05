@@ -129,7 +129,15 @@ const spec = z
     calculations: z.array(projection).optional().describe('Formulas, appended after the projections.'),
     filters: z.array(filter).optional().describe('Conditions, ANDed together.'),
     segments: z.array(segment).optional().describe('Populations that constrain the query.'),
-    limit: z.number().int().positive().max(5000).optional(),
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .max(5000)
+      .optional()
+      .describe(
+        'Carried with the query, NOT applied to the SQL. For a top N use a top_n filter with top_n_measure.',
+      ),
   })
   .strict();
 
