@@ -5,11 +5,12 @@
  * plain text, because the browser needs more than prose: it draws the chart
  * when a query returns and shows the tool trace as it happens.
  *
- * The API keys stay here. The browser never sees the 0sql key, the Anthropic
- * key or the warehouse.
+ * The API keys stay here. The browser never sees the 0sql key, the model key
+ * or the warehouse.
  */
 import { runAgent } from '@/lib/agent';
 import { getConversation, saveConversation } from '@/lib/conversations';
+import { NoProviderError, selectDriver } from '@/lib/providers';
 import { userById } from '@/lib/users';
 import type { AgentEvent } from '@/types';
 
@@ -26,11 +27,14 @@ export async function POST(request: Request) {
   if (!conversationId || !message?.trim()) {
     return Response.json({ error: 'conversationId and message are required' }, { status: 400 });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return Response.json(
-      { error: 'ANTHROPIC_API_KEY is not set. Copy .env.example to .env.local and fill it in.' },
-      { status: 500 },
-    );
+  // Fail before opening a stream: a missing key should read as a setup
+  // problem, not as an error halfway through an answer.
+  let driver;
+  try {
+    driver = selectDriver();
+  } catch (error) {
+    if (error instanceof NoProviderError) return Response.json({ error: error.message }, { status: 500 });
+    throw error;
   }
 
   const user = userById(userId);
@@ -50,10 +54,11 @@ export async function POST(request: Request) {
 
       try {
         const history = await runAgent({
-          messages: [...getConversation(conversationId), { role: 'user', content: message }],
+          turns: [...getConversation(conversationId), { role: 'user', text: message }],
           context: user.context,
           emit,
           signal: request.signal,
+          driver,
         });
         saveConversation(conversationId, history);
       } catch (error) {

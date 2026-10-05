@@ -7,13 +7,13 @@
  * this caller may see. When the spec is wrong, 0sql says so with a class and a
  * message, that comes back as a tool error, and the model tries again.
  *
- * Zod does double duty here: one schema produces the JSON Schema Claude is
+ * Zod does double duty here: one schema produces the JSON Schema the model is
  * given and validates what comes back, so a truncated or malformed tool input
  * is caught before it reaches the API.
  */
 import { z } from 'zod';
-import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent, ChartKind, QuerySpec, SecurityContext } from '@/types';
+import type { ToolSpec } from './providers';
 import { ZsqlError, planSql, searchFields } from './zsql';
 import { runSql } from './warehouse';
 import { addTile, listTiles, removeTile } from './tiles';
@@ -171,19 +171,20 @@ export type ToolName = keyof typeof schemas;
 
 /* -------------------------------------------------------------- definitions */
 
-function define(name: ToolName, description: string): Anthropic.Tool {
+/**
+ * One Zod schema, two jobs: the JSON Schema the model is given, and the
+ * validator for what comes back. Each provider driver reshapes the result for
+ * its own API — there is nothing vendor-specific in a tool definition.
+ */
+function define(name: ToolName, description: string): ToolSpec {
   return {
     name,
     description,
-    input_schema: z.toJSONSchema(schemas[name], { target: 'draft-7' }) as Anthropic.Tool.InputSchema,
-    // The spec argument can be long. Stream it as it is generated rather than
-    // waiting for the server to buffer the whole thing; Zod validates what
-    // arrives, so a truncated input is caught rather than planned.
-    eager_input_streaming: true,
+    schema: z.toJSONSchema(schemas[name], { target: 'draft-7' }) as Record<string, unknown>,
   };
 }
 
-export const tools: Anthropic.Tool[] = [
+export const toolSpecs: ToolSpec[] = [
   define(
     'search_fields',
     'Search the deployed semantic model for dimensions and measures. Returns names, kinds, data types, descriptions and synonyms. Use it before writing a spec: field names must come from the model, never from memory.',

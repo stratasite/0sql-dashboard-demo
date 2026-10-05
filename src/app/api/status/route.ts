@@ -6,12 +6,13 @@
  */
 import { listTables, target, ZsqlError } from '@/lib/zsql';
 import { warehouseIsReachable, warehousePath } from '@/lib/warehouse';
+import { providerStatus } from '@/lib/providers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [warehouse, model] = await Promise.all([
+  const [warehouse, semantic] = await Promise.all([
     warehouseIsReachable(),
     listTables().then(
       (tables) => ({ ok: true as const, tables: tables.length }),
@@ -26,8 +27,10 @@ export async function GET() {
     project: target.project,
     branch: target.branch,
     apiBase: target.base,
-    anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
+    // `llm` is the chat model; `model` is the semantic model. Two different
+    // things called "model", so they get different names on the wire.
+    llm: providerStatus(),
     warehouse: { ok: warehouse, path: warehousePath.replace(process.cwd(), '.') },
-    model,
+    model: semantic,
   });
 }

@@ -1,7 +1,7 @@
 /**
  * The agent loop.
  *
- * Claude writes query specs; 0sql turns them into SQL; we run that SQL and
+ * The model writes query specs; 0sql turns them into SQL; we run that SQL and
  * hand the rows back. The loop is deliberately written out rather than hidden
  * behind a helper, because the point of this demo is what travels through it:
  *
@@ -11,19 +11,19 @@
  * on the server, from the session, after the spec exists. And the SQL itself is
  * composed by the planner from a deployed model — so a wrong spec is a 422 from
  * 0sql, not a wrong number on a dashboard.
+ *
+ * *Which* model it is turns out to be a detail: the loop talks to a driver
+ * (src/lib/providers/), because a query spec is JSON against a published
+ * schema, not prose only one vendor can produce.
  */
-import Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent, SecurityContext } from '@/types';
-import { runTool, tools, type RanQuery, type ToolContext } from './tools';
+import { runTool, toolSpecs, type RanQuery, type ToolContext } from './tools';
 import { fieldCatalog } from './catalog';
+import { selectDriver, type Driver, type Turn } from './providers';
 import { target } from './zsql';
-
-const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-opus-5';
 
 /** How many model turns one question may take before we stop. */
 const MAX_TURNS = 8;
-
-const client = new Anthropic();
 
 function systemPrompt(catalog: string): string {
   return `You are the analyst behind a customer service analytics dashboard. You answer questions about contact volume, handling time, resolution and cost, and you build dashboard tiles when asked.
@@ -51,69 +51,72 @@ ${catalog}`;
 
 export interface AgentRequest {
   /** The conversation so far, oldest first. */
-  messages: Anthropic.MessageParam[];
+  turns: Turn[];
   context: SecurityContext;
   emit: (event: AgentEvent) => void;
   signal?: AbortSignal;
+  /** Defaults to whichever provider is configured. */
+  driver?: Driver;
 }
 
 /** Returns the conversation including this turn's tool traffic, to store. */
 export async function runAgent({
-  messages,
+  turns,
   context,
   emit,
   signal,
-}: AgentRequest): Promise<Anthropic.MessageParam[]> {
-  const history = [...messages];
+  driver = selectDriver(),
+}: AgentRequest): Promise<Turn[]> {
+  const history = [...turns];
   const ran = new Map<string, RanQuery>();
   const toolContext: ToolContext = { context, emit, ran };
   const catalog = await fieldCatalog();
+  const system = systemPrompt(catalog);
 
   for (let turn = 0; turn < MAX_TURNS; turn += 1) {
-    const stream = client.messages.stream(
-      {
-        model: MODEL,
-        // Thinking tokens count against this, and a long spec is a long tool
-        // input; 16k leaves room so a turn is never truncated mid-argument.
-        max_tokens: 16000,
-        // The catalogue and the tool list are the same bytes on every request,
-        // so the whole prefix is a cache hit after the first turn.
-        system: [
-          { type: 'text', text: systemPrompt(catalog), cache_control: { type: 'ephemeral' } },
-        ],
-        thinking: { type: 'adaptive' },
-        // Chat wants an answer, not an essay. Raise this for harder analysis.
-        output_config: { effort: 'medium' },
-        tools,
-        messages: history,
-      },
-      { signal },
-    );
+    const result = await driver.turn({
+      system,
+      tools: toolSpecs,
+      turns: history,
+      onText: (text) => emit({ type: 'text', text }),
+      signal,
+    });
 
-    stream.on('text', (text) => emit({ type: 'text', text }));
+    history.push({
+      role: 'assistant',
+      text: result.text,
+      calls: result.calls,
+      provider: driver.id,
+      raw: result.raw,
+    });
 
-    const message = await stream.finalMessage();
-    history.push({ role: 'assistant', content: message.content });
-
-    if (message.stop_reason === 'refusal') {
-      emit({ type: 'error', message: 'The model declined to answer that.' });
+    if (result.stopped?.reason === 'refusal') {
+      emit({
+        type: 'error',
+        message: `The model declined to answer that${result.stopped.detail ? `: ${result.stopped.detail}` : '.'}`,
+      });
       return history;
     }
-    if (message.stop_reason !== 'tool_use') return history;
+    if (result.stopped?.reason === 'error') {
+      emit({ type: 'error', message: result.stopped.detail ?? 'The model run failed.' });
+      return history;
+    }
+    if (result.stopped?.reason === 'length' && result.calls.length === 0) {
+      emit({ type: 'error', message: 'The answer hit the token ceiling. Ask for less at once.' });
+      return history;
+    }
 
-    const calls = message.content.filter(
-      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
-    );
+    if (result.calls.length === 0) return history;
 
-    for (const call of calls) {
+    for (const call of result.calls) {
       emit({ type: 'tool_call', id: call.id, name: call.name, input: call.input });
     }
 
     // Tools run in parallel when the model asked for several, and every result
-    // goes back in one user message — splitting them teaches the model to stop
-    // calling tools in parallel.
+    // goes back in one turn — a driver that splits them teaches the model to
+    // stop calling tools in parallel.
     const results = await Promise.all(
-      calls.map(async (call) => {
+      result.calls.map(async (call) => {
         const outcome = await runTool(call.name, call.input, toolContext, call.id);
         emit({
           type: 'tool_result',
@@ -123,15 +126,15 @@ export async function runAgent({
           summary: outcome.summary,
         });
         return {
-          type: 'tool_result' as const,
-          tool_use_id: call.id,
+          id: call.id,
+          name: call.name,
           content: outcome.content,
-          ...(outcome.isError ? { is_error: true } : {}),
+          ...(outcome.isError ? { isError: true } : {}),
         };
       }),
     );
 
-    history.push({ role: 'user', content: results });
+    history.push({ role: 'tool', results });
   }
 
   emit({

@@ -1,15 +1,16 @@
 # 0sql chat dashboard demo
 
 A custom analytics dashboard where the questions are typed in English and the
-SQL is planned by [0sql](https://0sql.io). Claude writes a **query spec**; 0sql
-turns that spec into one correct SQL statement for the warehouse, with
+SQL is planned by [0sql](https://0sql.io). The model writes a **query spec**;
+0sql turns that spec into one correct SQL statement for the warehouse, with
 row-level security compiled in; the app runs it and draws it. Say "pin that"
-and the answer becomes a dashboard tile.
+and the answer becomes a dashboard tile. Claude drives it by default and
+OpenAI works too — the spec is the contract, not the provider.
 
 ```
-you ──▶ Claude ──▶ query spec ──▶ 0sql ──▶ SQL ──▶ your warehouse ──▶ rows ──▶ chart
-                       ▲                │
-                       └── 422: what's wrong with the spec
+you ──▶ model ──▶ query spec ──▶ 0sql ──▶ SQL ──▶ your warehouse ──▶ rows ──▶ chart
+                      ▲                │
+                      └── 422: what's wrong with the spec
 ```
 
 The model never writes SQL and never sees a connection string. It cannot invent
@@ -34,7 +35,9 @@ Walkthrough of how it was built, step by step:
   granted this project, for the app to query with. The query key is read only —
   it can plan and discover and nothing else, which is what an application
   should carry
-- An Anthropic API key — [console.anthropic.com](https://console.anthropic.com)
+- A model key: Anthropic ([console.anthropic.com](https://console.anthropic.com))
+  or OpenAI ([platform.openai.com](https://platform.openai.com)) — either one
+  drives the agent, see [Which model](#which-model)
 - The `zsql` CLI, to deploy the model once:
   ```sh
   curl -fsSL https://0sql.io/install.sh | sh
@@ -86,7 +89,7 @@ setup line, it tells you which of the three steps is missing.
 - *Compare answered contacts to abandoned ones by region, month over month*
 - *Drop the resolution mix tile*
 
-Open **spec** and **planned sql** under any answer. The spec is what Claude
+Open **spec** and **planned sql** under any answer. The spec is what the model
 wrote; the SQL is what 0sql planned from it, against this model, for this user.
 
 ## Row-level security, not prompt instructions
@@ -115,6 +118,7 @@ planner. That is the part a text-to-SQL agent cannot give you.
 | File | What it does |
 |---|---|
 | `src/lib/agent.ts` | the loop: stream a turn, run the tools it asked for, feed the results back |
+| `src/lib/providers/` | the model seam: `anthropic.ts`, `openai.ts`, and the driver interface |
 | `src/lib/tools.ts` | the five tools, their Zod schemas, and what each one does |
 | `src/lib/zsql.ts` | the 0sql client: `/sql`, `/explore`, `/fields`, `/tables` |
 | `src/lib/warehouse.ts` | runs the planned statement on DuckDB |
@@ -123,7 +127,7 @@ planner. That is the part a text-to-SQL agent cannot give you.
 | `src/app/api/chat/route.ts` | the chat endpoint, streaming newline-delimited events |
 | `src/app/api/tiles/route.ts` | re-plans and re-runs every tile on load |
 
-The five tools Claude is given:
+The five tools the model is given:
 
 | Tool | Does |
 |---|---|
@@ -185,13 +189,34 @@ To point the demo at your own warehouse instead: change `adapter` in
 `sqlite`), redeploy, and replace `src/lib/warehouse.ts` with your own client.
 0sql emits that dialect instead; nothing else in the app moves.
 
-## Cost and model
+## Which model
 
-The agent runs on `claude-opus-5`. A question costs a few cents: the field
-catalogue and tool definitions are cached by the prompt cache, so after the
-first turn the big part of the prompt is a cache read. Set `ANTHROPIC_MODEL` to
-use another model, and tune `output_config.effort` in `src/lib/agent.ts` —
-`medium` is the default here, `low` is quicker and cheaper for simple questions.
+Claude by default (`claude-opus-5`), OpenAI if you point it there
+(`gpt-5.1`). Set one key and the app uses it; set both and `LLM_PROVIDER`
+decides:
+
+```sh
+LLM_PROVIDER=openai       # or anthropic
+OPENAI_MODEL=gpt-5.1      # or ANTHROPIC_MODEL=claude-opus-5
+```
+
+The loop in `src/lib/agent.ts` does not know which it is talking to. It hands a
+**driver** (`src/lib/providers/`) a system prompt, the tool list and the
+conversation; the driver answers with the text and the tool calls. Each driver
+owns the translation to its own API — Anthropic gets `eager_input_streaming` and
+a cache breakpoint, OpenAI gets the Responses API with `store: false` — and
+nothing else in the app changes.
+
+That seam is cheap for one reason, and it is the reason this demo exists: what
+the model produces is **a query spec against a published JSON Schema**, not
+prose only one vendor can produce. Swapping the model swaps the thing writing
+specs. It does not touch who decides the joins, the grain, the dialect or the
+rows this caller may see — that is the semantic layer, and it is the same for
+both.
+
+A question costs a few cents. Tune the effort knob in whichever driver you use
+(`output_config.effort` for Anthropic, `reasoning.effort` for OpenAI); both sit
+at `medium`, and `low` is quicker and cheaper for simple questions.
 
 Conversations are held in memory (`src/lib/conversations.ts`) and tiles in a
 JSON file. Both are deliberately the simplest thing that works; swap them for

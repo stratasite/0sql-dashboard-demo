@@ -16,7 +16,7 @@ interface Status {
   project: string;
   branch: string;
   apiBase: string;
-  anthropicKey: boolean;
+  llm: { provider: string | null; model: string | null };
   warehouse: { ok: boolean; path: string };
   model: { ok: true; tables: number } | { ok: false; error: string };
 }
@@ -40,7 +40,7 @@ export function Header({
   const user = users.find((u) => u.id === userId) ?? users[0];
   const problems = status
     ? [
-        !status.anthropicKey && 'ANTHROPIC_API_KEY is not set',
+        !status.llm.provider && 'no model key: set ANTHROPIC_API_KEY or OPENAI_API_KEY',
         !status.warehouse.ok && `no warehouse at ${status.warehouse.path} — run npm run seed`,
         !status.model.ok && status.model.error,
       ].filter(Boolean as unknown as (v: unknown) => v is string)
@@ -58,6 +58,7 @@ export function Header({
             <span className="hidden font-mono text-xs text-muted sm:inline">
               {status.project}/{status.branch}
               {status.model.ok ? ` · ${status.model.tables} tables` : ''}
+              {status.llm.model ? ` · ${status.llm.model}` : ''}
             </span>
           )}
         </div>
