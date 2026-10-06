@@ -18,6 +18,7 @@
  * a cancelled question still shows what it cost.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowUp, CircleAlert, MessageSquarePlus, Square, Wrench } from 'lucide-react';
 import { QueryCard } from './QueryCard';
 import { TracePanel } from './TracePanel';
 import { compact, duration } from '@/lib/format';
@@ -284,8 +285,9 @@ export function Chat({
           <button
             type="button"
             onClick={reset}
-            className="text-xs text-muted hover:text-foreground"
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-foreground"
           >
+            <MessageSquarePlus aria-hidden className="size-3.5" />
             new conversation
           </button>
         )}
@@ -315,11 +317,14 @@ export function Chat({
         )}
 
         {entries.map((entry) => {
+          // A query event carries its tool call's id, so the tool line and the
+          // card it produced would otherwise share a key.
+          const key = `${entry.kind}:${entry.id}`;
           switch (entry.kind) {
             case 'user':
               return (
                 <p
-                  key={entry.id}
+                  key={key}
                   className="ml-auto max-w-[85%] rounded-xl bg-surface-2 px-3 py-2 text-sm whitespace-pre-wrap"
                 >
                   {entry.text}
@@ -327,24 +332,30 @@ export function Chat({
               );
             case 'assistant':
               return (
-                <p key={entry.id} className="max-w-[90%] text-sm leading-relaxed whitespace-pre-wrap">
+                <p key={key} className="max-w-[90%] text-sm leading-relaxed whitespace-pre-wrap">
                   {entry.text}
                 </p>
               );
             case 'tool':
               return (
-                <p key={entry.id} className="font-mono text-xs text-muted">
-                  <span className={entry.ok === false ? 'text-primary' : undefined}>
-                    {entry.name}
+                <p key={key} className="flex items-baseline gap-2 font-mono text-xs text-muted">
+                  <Wrench
+                    aria-hidden
+                    className={`size-3 shrink-0 self-center ${entry.ok === false ? 'text-primary' : ''}`}
+                  />
+                  <span>
+                    <span className={entry.ok === false ? 'text-primary' : undefined}>
+                      {entry.name}
+                    </span>
+                    {entry.summary ? ` → ${entry.summary}` : ' …'}
+                    {entry.ms !== undefined && ` · ${duration(entry.ms)}`}
                   </span>
-                  {entry.summary ? ` → ${entry.summary}` : ' …'}
-                  {entry.ms !== undefined && ` · ${duration(entry.ms)}`}
                 </p>
               );
             case 'query':
               return (
                 <QueryCard
-                  key={entry.id}
+                  key={key}
                   title={entry.title}
                   chart={entry.chart}
                   spec={entry.spec}
@@ -355,20 +366,21 @@ export function Chat({
                 />
               );
             case 'trace':
-              return <TracePanel key={entry.id} steps={entry.steps} totalMs={entry.totalMs} />;
+              return <TracePanel key={key} steps={entry.steps} totalMs={entry.totalMs} />;
             case 'note':
               return (
-                <p key={entry.id} className="font-mono text-xs text-muted">
+                <p key={key} className="font-mono text-xs text-muted">
                   {entry.text}
                 </p>
               );
             case 'error':
               return (
                 <p
-                  key={entry.id}
-                  className="rounded-lg border border-primary/40 bg-surface px-3 py-2 text-sm text-primary"
+                  key={key}
+                  className="flex items-start gap-2 rounded-lg border border-primary/40 bg-surface px-3 py-2 text-sm text-primary"
                 >
-                  {entry.text}
+                  <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+                  <span>{entry.text}</span>
                 </p>
               );
           }
@@ -407,17 +419,21 @@ export function Chat({
             <button
               type="button"
               onClick={stop}
-              className="rounded-lg border border-border px-3 py-2 text-sm text-muted hover:border-primary hover:text-primary"
+              aria-label="Stop"
+              title="Stop (Esc)"
+              className="rounded-lg border border-border p-2.5 text-muted hover:border-primary hover:text-primary"
             >
-              stop
+              <Square aria-hidden className="size-4" fill="currentColor" />
             </button>
           ) : (
             <button
               type="submit"
               disabled={!draft.trim()}
-              className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-40"
+              aria-label="Ask"
+              title="Ask (Enter)"
+              className="rounded-lg bg-primary p-2.5 text-primary-foreground disabled:opacity-40"
             >
-              ask
+              <ArrowUp aria-hidden className="size-4" />
             </button>
           )}
         </div>

@@ -13,6 +13,7 @@
  * and it is only convincing if you can open it.
  */
 import { useState } from 'react';
+import { Braces, Check, Copy as CopyIcon, Database } from 'lucide-react';
 import type { QuerySpec } from '@/types';
 
 export function QueryDetails({
@@ -37,10 +38,12 @@ export function QueryDetails({
       <div className="flex items-baseline justify-between gap-3 text-xs">
         <div className="flex gap-3">
           <Tab active={shown === 'spec'} onClick={() => setShown(shown === 'spec' ? 'none' : 'spec')}>
+            <Braces aria-hidden className="size-3" />
             spec
           </Tab>
           {sql && (
             <Tab active={shown === 'sql'} onClick={() => setShown(shown === 'sql' ? 'none' : 'sql')}>
+              <Database aria-hidden className="size-3" />
               planned sql
             </Tab>
           )}
@@ -73,7 +76,7 @@ function Tab({
     <button
       type="button"
       onClick={onClick}
-      className={`font-mono underline decoration-dotted underline-offset-4 ${
+      className={`flex items-center gap-1 font-mono underline decoration-dotted underline-offset-4 ${
         active ? 'text-primary' : 'text-muted hover:text-foreground'
       }`}
     >
@@ -99,8 +102,15 @@ function Copy({ text }: { text: string }) {
           // "copied" when nothing was would be worse than saying nothing.
         }
       }}
-      className="absolute top-2 right-2 rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-muted hover:border-primary hover:text-primary"
+      aria-label={copied ? 'Copied' : 'Copy'}
+      title="Copy"
+      className="absolute top-2 right-2 flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-muted hover:border-primary hover:text-primary"
     >
+      {copied ? (
+        <Check aria-hidden className="size-3" />
+      ) : (
+        <CopyIcon aria-hidden className="size-3" />
+      )}
       {copied ? 'copied' : 'copy'}
     </button>
   );

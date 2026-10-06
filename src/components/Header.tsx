@@ -11,6 +11,8 @@
  */
 import { useEffect, useState } from 'react';
 import { users } from '@/lib/users';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { TriangleAlert, User } from 'lucide-react';
 
 interface Status {
   project: string;
@@ -64,26 +66,33 @@ export function Header({
           )}
         </div>
 
-        <label className="flex items-center gap-2 text-xs">
-          <span className="text-muted">querying as</span>
-          <select
-            value={userId}
-            onChange={(event) => onUserChange(event.target.value)}
-            className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
-          >
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.label}
-              </option>
-            ))}
-          </select>
-          <span className="hidden text-muted md:inline">{user.blurb}</span>
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-xs">
+            <User aria-hidden className="size-3.5 text-muted" />
+            <span className="text-muted">querying as</span>
+            <select
+              value={userId}
+              onChange={(event) => onUserChange(event.target.value)}
+              className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
+            >
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.label}
+                </option>
+              ))}
+            </select>
+            <span className="hidden text-muted md:inline">{user.blurb}</span>
+          </label>
+          <ThemeToggle />
+        </div>
       </div>
 
       {problems.length > 0 && (
         <div className="border-t border-border bg-surface-2 px-4 py-2">
-          <p className="font-mono text-xs text-primary">setup: {problems.join(' · ')}</p>
+          <p className="flex items-start gap-2 font-mono text-xs text-primary">
+            <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+            <span>setup: {problems.join(' · ')}</span>
+          </p>
           <p className="mt-1 text-xs text-muted">
             See the README: copy <code className="font-mono">.env.example</code> to{' '}
             <code className="font-mono">.env.local</code>, deploy the model with{' '}

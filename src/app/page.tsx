@@ -9,10 +9,16 @@
  * with every question, the dashboard re-plans its tiles for it.
  */
 import { useState } from 'react';
+import { LayoutGrid, MessageSquare } from 'lucide-react';
 import { Chat } from '@/components/Chat';
 import { Dashboard } from '@/components/Dashboard';
 import { Header } from '@/components/Header';
 import { defaultUser } from '@/lib/users';
+
+const PANES = [
+  { value: 'ask', Icon: MessageSquare },
+  { value: 'dashboard', Icon: LayoutGrid },
+] as const;
 
 export default function Page() {
   const [userId, setUserId] = useState(defaultUser.id);
@@ -25,16 +31,17 @@ export default function Page() {
       <Header userId={userId} onUserChange={setUserId} />
 
       <nav className="flex gap-1 border-b border-border px-3 py-2 lg:hidden">
-        {(['ask', 'dashboard'] as const).map((value) => (
+        {PANES.map(({ value, Icon }) => (
           <button
             key={value}
             type="button"
             onClick={() => setPane(value)}
             aria-current={pane === value}
-            className={`rounded-md px-3 py-1 font-mono text-xs ${
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-mono text-xs ${
               pane === value ? 'bg-surface-2 text-foreground' : 'text-muted'
             }`}
           >
+            <Icon aria-hidden className="size-3.5" />
             {value}
           </button>
         ))}

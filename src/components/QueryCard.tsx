@@ -5,6 +5,7 @@
  * it the query that produced it — the spec the model wrote and the SQL 0sql
  * planned from it, in the same disclosure the dashboard tiles use.
  */
+import { Check, Pin } from 'lucide-react';
 import { ChartView } from './ChartView';
 import { QueryDetails } from './QueryDetails';
 import type { ChartKind, QuerySpec, ResultSet } from '@/types';
@@ -35,8 +36,13 @@ export function QueryCard({
             type="button"
             onClick={onPin}
             disabled={pinned}
-            className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-muted hover:border-primary hover:text-primary disabled:border-border disabled:text-muted"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-muted hover:border-primary hover:text-primary disabled:border-border disabled:text-muted"
           >
+            {pinned ? (
+              <Check aria-hidden className="size-3.5" />
+            ) : (
+              <Pin aria-hidden className="size-3.5" />
+            )}
             {pinned ? 'pinned' : 'pin to dashboard'}
           </button>
         )}

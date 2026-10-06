@@ -12,6 +12,7 @@
  * server as each phase finishes, the token counts from whichever provider ran
  * the turn. A phase with nothing to report shows nothing rather than a zero.
  */
+import { ChevronRight } from 'lucide-react';
 import { chars, compact, duration, exact, percent } from '@/lib/format';
 import type { ModelStep, TokenUsage, ToolStep, TraceStep } from '@/types';
 
@@ -36,10 +37,10 @@ export function TracePanel({ steps, totalMs }: { steps: TraceStep[]; totalMs: nu
   return (
     <details className="group rounded-xl border border-border bg-surface">
       <summary className="flex cursor-pointer list-none items-baseline gap-2 px-3 py-2 font-mono text-xs text-muted hover:text-foreground">
-        <span aria-hidden className="w-2 shrink-0">
-          <span className="group-open:hidden">▸</span>
-          <span className="hidden group-open:inline">▾</span>
-        </span>
+        <ChevronRight
+          aria-hidden
+          className="size-3 shrink-0 self-center transition-transform group-open:rotate-90"
+        />
         <span>trace</span>
         <span>·</span>
         <span className="min-w-0 flex-1 truncate">{headline.join(' · ')}</span>

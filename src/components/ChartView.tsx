@@ -10,6 +10,7 @@
  * click away, so identity never rests on colour alone.
  */
 import { useMemo, useState } from 'react';
+import { ChartColumn, Table as TableIcon, type LucideIcon } from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -65,7 +66,7 @@ export function ChartView({
       <div>
         <Table result={result} />
         {chart !== 'table' && (
-          <Toggle onClick={() => setAsTable(false)} label="Show the chart" />
+          <Toggle onClick={() => setAsTable(false)} label="Show the chart" Icon={ChartColumn} />
         )}
       </div>
     );
@@ -168,7 +169,7 @@ export function ChartView({
           </BarChart>
         )}
       </ResponsiveContainer>
-      <Toggle onClick={() => setAsTable(true)} label="Show the numbers" />
+      <Toggle onClick={() => setAsTable(true)} label="Show the numbers" Icon={TableIcon} />
     </div>
   );
 }
@@ -221,13 +222,22 @@ function Table({ result }: { result: ResultSet }) {
   );
 }
 
-function Toggle({ onClick, label }: { onClick: () => void; label: string }) {
+function Toggle({
+  onClick,
+  label,
+  Icon,
+}: {
+  onClick: () => void;
+  label: string;
+  Icon: LucideIcon;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="mt-2 text-xs text-muted underline decoration-dotted underline-offset-4 hover:text-foreground"
+      className="mt-2 flex items-center gap-1.5 text-xs text-muted underline decoration-dotted underline-offset-4 hover:text-foreground"
     >
+      <Icon aria-hidden className="size-3.5" />
       {label}
     </button>
   );

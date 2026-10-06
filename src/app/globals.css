@@ -3,8 +3,9 @@
 /* ============================================================
    0sql design tokens. Monochrome with a single rust accent;
    never hardcode a hex in a component, reference a token.
-   Light and dark both ship: dark follows the OS, and `.dark`
-   on <html> forces it.
+   Light and dark both ship: with no class on <html> the OS decides,
+   and `.light` or `.dark` on <html> forces one. The header's
+   ThemeToggle sets that class and remembers it in localStorage.
    ============================================================ */
 
 :root {
