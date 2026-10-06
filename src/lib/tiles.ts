@@ -108,6 +108,26 @@ export async function removeTile(id: string): Promise<Tile | undefined> {
   return tile;
 }
 
+/**
+ * Put the tiles in the given order. Ids that are not in the list keep their
+ * relative order after the ones that are, so a stale order from one browser
+ * cannot drop a tile pinned from another. Returns the new order.
+ */
+export async function reorderTiles(order: string[]): Promise<Tile[]> {
+  const tiles = await listTiles();
+  const rank = new Map(order.map((id, index) => [id, index]));
+  const sorted = [...tiles].sort((a, b) => {
+    const ra = rank.get(a.id);
+    const rb = rank.get(b.id);
+    if (ra === undefined && rb === undefined) return 0;
+    if (ra === undefined) return 1;
+    if (rb === undefined) return -1;
+    return ra - rb;
+  });
+  await save(sorted);
+  return sorted;
+}
+
 export async function renameTile(id: string, title: string): Promise<Tile | undefined> {
   const tiles = await listTiles();
   const tile = tiles.find((t) => t.id === id);

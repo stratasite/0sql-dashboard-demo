@@ -1,13 +1,14 @@
 /**
- * GET  /api/tiles?user=<id>  — every tile, re-planned and re-run
- * POST /api/tiles            — pin a tile from a spec
+ * GET   /api/tiles?user=<id>  — every tile, re-planned and re-run
+ * POST  /api/tiles            — pin a tile from a spec
+ * PATCH /api/tiles            — reorder: { order: [tile id, ...] }
  *
  * The GET is the clearest statement of what a semantic layer buys you: the
  * dashboard stores four specs, and each load asks 0sql what SQL they mean
  * today, for this caller. Rename a column in the warehouse, change a join,
  * add a security policy — the tiles follow, because none of them hold SQL.
  */
-import { addTile, listTiles } from '@/lib/tiles';
+import { addTile, listTiles, reorderTiles } from '@/lib/tiles';
 import { planSql, ZsqlError } from '@/lib/zsql';
 import { runSql } from '@/lib/warehouse';
 import { userById } from '@/lib/users';
@@ -56,4 +57,14 @@ export async function POST(request: Request) {
     spec: body.spec,
   });
   return Response.json({ tile }, { status: 201 });
+}
+
+export async function PATCH(request: Request) {
+  const body = (await request.json().catch(() => null)) as { order?: unknown } | null;
+  const order = body?.order;
+  if (!Array.isArray(order) || !order.every((id) => typeof id === 'string')) {
+    return Response.json({ error: 'order must be a list of tile ids' }, { status: 400 });
+  }
+  const tiles = await reorderTiles(order);
+  return Response.json({ order: tiles.map((tile) => tile.id) });
 }
