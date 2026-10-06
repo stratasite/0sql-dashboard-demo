@@ -7,6 +7,10 @@
  *
  * The API keys stay here. The browser never sees the 0sql key, the model key
  * or the warehouse.
+ *
+ * Cancelling is wired all the way through: when the browser aborts the fetch —
+ * the stop button, a closed tab — the model call is aborted with it, and the
+ * conversation is saved at the last complete exchange.
  */
 import { runAgent } from '@/lib/agent';
 import { getConversation, saveConversation } from '@/lib/conversations';
@@ -40,6 +44,12 @@ export async function POST(request: Request) {
   const user = userById(userId);
   const encoder = new TextEncoder();
 
+  // Two things mean "the browser is gone": the request signal, and the response
+  // stream being cancelled. Either one has to stop the model, so they feed one
+  // controller rather than each being wired up separately.
+  const gone = new AbortController();
+  request.signal.addEventListener('abort', () => gone.abort(), { once: true });
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let open = true;
@@ -57,7 +67,7 @@ export async function POST(request: Request) {
           turns: [...getConversation(conversationId), { role: 'user', text: message }],
           context: user.context,
           emit,
-          signal: request.signal,
+          signal: gone.signal,
           driver,
         });
         saveConversation(conversationId, history);
@@ -67,8 +77,16 @@ export async function POST(request: Request) {
       } finally {
         emit({ type: 'done' });
         open = false;
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Already cancelled from the other end; nothing left to close.
+        }
       }
+    },
+
+    cancel() {
+      gone.abort();
     },
   });
 

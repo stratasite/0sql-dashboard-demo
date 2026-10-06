@@ -14,6 +14,7 @@
  */
 import OpenAI from 'openai';
 import type { Responses } from 'openai/resources/responses/responses';
+import type { TokenUsage } from '@/types';
 import type { Driver, ToolCall, ToolSpec, Turn, TurnRequest, TurnResult } from './types';
 
 const DEFAULT_MODEL = 'gpt-5.1';
@@ -27,6 +28,9 @@ export function openaiDriver(): Driver {
     model,
 
     async turn({ system, tools, turns, onText, signal }: TurnRequest): Promise<TurnResult> {
+      const started = performance.now();
+      let firstTokenMs: number | undefined;
+
       const stream = await client.responses.create(
         {
           model,
@@ -45,6 +49,10 @@ export function openaiDriver(): Driver {
       let failure: string | undefined;
 
       for await (const event of stream) {
+        // Any delta ends the wait — reasoning summary, text or tool arguments.
+        if (firstTokenMs === undefined && event.type.endsWith('.delta')) {
+          firstTokenMs = performance.now() - started;
+        }
         switch (event.type) {
           case 'response.output_text.delta':
             onText(event.delta);
@@ -93,6 +101,8 @@ export function openaiDriver(): Driver {
         text,
         calls,
         raw: output,
+        usage: final?.usage ? toUsage(final.usage) : undefined,
+        firstTokenMs,
         stopped: failure
           ? { reason: 'error', detail: failure }
           : refusal && refusal.type === 'refusal'
@@ -102,6 +112,24 @@ export function openaiDriver(): Driver {
               : undefined,
       };
     },
+  };
+}
+
+/**
+ * The mirror image of the Anthropic driver's conversion: `input_tokens` here
+ * already includes the cached prefix, so the cache numbers are a breakdown of
+ * the prompt rather than something to add to it.
+ */
+function toUsage(usage: Responses.ResponseUsage): TokenUsage {
+  const cacheRead = usage.input_tokens_details?.cached_tokens ?? 0;
+  const cacheWrite = usage.input_tokens_details?.cache_write_tokens ?? 0;
+  const reasoning = usage.output_tokens_details?.reasoning_tokens ?? 0;
+  return {
+    prompt: usage.input_tokens,
+    output: usage.output_tokens,
+    ...(cacheRead ? { cacheRead } : {}),
+    ...(cacheWrite ? { cacheWrite } : {}),
+    ...(reasoning ? { reasoning } : {}),
   };
 }
 

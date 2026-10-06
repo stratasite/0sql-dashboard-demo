@@ -130,12 +130,92 @@ export interface TileData {
   result: ResultSet;
 }
 
+/**
+ * What one model turn cost, normalised across providers.
+ *
+ * The two APIs count differently — Anthropic reports `input_tokens` *excluding*
+ * the cache, OpenAI reports it including — so each driver converts to this
+ * shape rather than the panel guessing whose arithmetic it is looking at.
+ */
+export interface TokenUsage {
+  /** Every prompt token the turn was billed for, cached ones included. */
+  prompt: number;
+  /** Of `prompt`, how many came from the cache. */
+  cacheRead?: number;
+  /** Of `prompt`, how many were written to the cache. */
+  cacheWrite?: number;
+  output: number;
+  /** Reasoning tokens. Already counted in `output`. */
+  reasoning?: number;
+}
+
+/**
+ * How big the prompt was, in characters we sent. The token counts in
+ * `TokenUsage` are the authority on size; this says where the bytes went, which
+ * is what you look at when the cache stops hitting.
+ */
+export interface ContextSize {
+  system: number;
+  tools: number;
+  history: number;
+  /** Entries in the conversation, this turn's tool results included. */
+  messages: number;
+}
+
+/** One streamed model turn. */
+export interface ModelStep {
+  kind: 'model';
+  /** 1-based, within this question. */
+  turn: number;
+  provider: string;
+  model: string;
+  ms: number;
+  /** Request sent to first streamed delta. */
+  firstTokenMs?: number;
+  usage?: TokenUsage;
+  context: ContextSize;
+  /** The tools this turn asked for. */
+  calls: string[];
+}
+
+/** One tool the model called. The browser pairs `tool_call` with `tool_result`. */
+export interface ToolStep {
+  kind: 'tool';
+  id: string;
+  name: string;
+  ms?: number;
+  ok?: boolean;
+  /** Carried only for a failure, so the panel can stand on its own. */
+  error?: string;
+  /** Where the time went inside the tool: 0sql planning vs the warehouse. */
+  parts?: { label: string; ms: number }[];
+}
+
+/** Work the app did for itself, outside a model turn or a tool. */
+export interface AppStep {
+  kind: 'app';
+  label: string;
+  ms: number;
+  detail?: string;
+}
+
+export type TraceStep = ModelStep | ToolStep | AppStep;
+
 /** The events the chat route streams to the browser, one JSON object per line. */
 export type AgentEvent =
   | { type: 'text'; text: string }
   | { type: 'tool_call'; id: string; name: string; input: unknown }
-  | { type: 'tool_result'; id: string; name: string; ok: boolean; summary: string }
+  | {
+      type: 'tool_result';
+      id: string;
+      name: string;
+      ok: boolean;
+      summary: string;
+      ms: number;
+      parts?: { label: string; ms: number }[];
+    }
   | { type: 'query'; id: string; title: string; chart: ChartKind; spec: QuerySpec; sql: string; result: ResultSet }
+  | { type: 'step'; step: ModelStep | AppStep }
   | { type: 'tiles_changed' }
   | { type: 'error'; message: string }
   | { type: 'done' };

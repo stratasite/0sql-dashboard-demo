@@ -6,16 +6,27 @@
  * It reads the newline-delimited event stream from /api/chat and lays the turn
  * out in arrival order: what the model said, which tools it reached for, and
  * the queries that came back. The tool trace is deliberately visible — seeing
- * `run_query → 9 rows · duckdb` is how you learn what the agent is doing.
+ * `run_query → 9 rows · duckdb · 612ms` is how you learn what the agent is doing.
+ *
+ * A question can take ten seconds, most of it a model thinking before it has
+ * said a word, so the stream drives a live status line: what phase it is in and
+ * how long it has been there. When the turn ends, the same events become a
+ * `TracePanel` — timings, context size and token usage, collapsed to one line.
+ *
+ * Stopping aborts the fetch, which the route turns into an abort of the model
+ * call itself. Whatever had already arrived stays on screen, trace included, so
+ * a cancelled question still shows what it cost.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { QueryCard } from './QueryCard';
-import type { AgentEvent, ChartKind, QuerySpec, ResultSet } from '@/types';
+import { TracePanel } from './TracePanel';
+import { compact, duration } from '@/lib/format';
+import type { AgentEvent, ChartKind, QuerySpec, ResultSet, TraceStep } from '@/types';
 
 type Entry =
   | { kind: 'user'; id: string; text: string }
   | { kind: 'assistant'; id: string; text: string }
-  | { kind: 'tool'; id: string; name: string; ok?: boolean; summary?: string }
+  | { kind: 'tool'; id: string; name: string; ok?: boolean; summary?: string; ms?: number }
   | {
       kind: 'query';
       id: string;
@@ -26,7 +37,17 @@ type Entry =
       result: ResultSet;
       pinned?: boolean;
     }
+  | { kind: 'trace'; id: string; steps: TraceStep[]; totalMs: number }
+  | { kind: 'note'; id: string; text: string }
   | { kind: 'error'; id: string; text: string };
+
+/** What the turn is doing right now, for the status line. */
+interface Progress {
+  phase: string;
+  startedAt: number;
+  prompt: number;
+  output: number;
+}
 
 const SUGGESTIONS = [
   'Which call centers have the longest average handle time?',
@@ -46,11 +67,69 @@ export function Chat({
   const [entries, setEntries] = useState<Entry[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  // The steps of the turn in flight. A ref, because they are rendered once at
+  // the end rather than on every event.
+  const steps = useRef<TraceStep[]>([]);
+  // The question in flight, so it can be stopped. Also the test for whether a
+  // turn's late events still belong anywhere: after a reset, they do not.
+  const inflight = useRef<AbortController | null>(null);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [entries]);
+  }, [entries, progress]);
+
+  /** Returning the same object when nothing moved keeps a token from re-rendering. */
+  const phase = useCallback((next: string) => {
+    setProgress((current) => (current && current.phase !== next ? { ...current, phase: next } : current));
+  }, []);
+
+  /** The trace half of an event: timings, tokens, and the phase line. */
+  const observe = useCallback(
+    (event: AgentEvent) => {
+      switch (event.type) {
+        case 'step':
+          steps.current = [...steps.current, event.step];
+          if (event.step.kind === 'model') {
+            const usage = event.step.usage;
+            phase('thinking');
+            setProgress((current) =>
+              current && usage
+                ? {
+                    ...current,
+                    prompt: current.prompt + usage.prompt,
+                    output: current.output + usage.output,
+                  }
+                : current,
+            );
+          }
+          break;
+        case 'tool_call':
+          steps.current = [...steps.current, { kind: 'tool', id: event.id, name: event.name }];
+          phase(event.name);
+          break;
+        case 'tool_result':
+          steps.current = steps.current.map((step) =>
+            step.kind === 'tool' && step.id === event.id
+              ? {
+                  ...step,
+                  ok: event.ok,
+                  ms: event.ms,
+                  parts: event.parts,
+                  ...(event.ok ? {} : { error: event.summary }),
+                }
+              : step,
+          );
+          phase('thinking');
+          break;
+        case 'text':
+          phase('writing');
+          break;
+      }
+    },
+    [phase],
+  );
 
   const apply = useCallback((event: AgentEvent) => {
     setEntries((current) => {
@@ -67,7 +146,7 @@ export function Chat({
         case 'tool_result':
           return current.map((entry) =>
             entry.kind === 'tool' && entry.id === event.id
-              ? { ...entry, ok: event.ok, summary: event.summary }
+              ? { ...entry, ok: event.ok, summary: event.summary, ms: event.ms }
               : entry,
           );
         case 'query':
@@ -97,11 +176,18 @@ export function Chat({
     setEntries((current) => [...current, { kind: 'user', id: crypto.randomUUID(), text: message }]);
     setBusy(true);
 
+    const startedAt = Date.now();
+    const controller = new AbortController();
+    steps.current = [];
+    inflight.current = controller;
+    setProgress({ phase: 'thinking', startedAt, prompt: 0, output: 0 });
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId, message, userId }),
+        signal: controller.signal,
       });
 
       if (!response.ok || !response.body) {
@@ -122,15 +208,59 @@ export function Chat({
         for (const line of lines) {
           if (!line.trim()) continue;
           const event = JSON.parse(line) as AgentEvent;
+          observe(event);
           if (event.type === 'tiles_changed') onTilesChanged();
           else apply(event);
         }
       }
     } catch (error) {
-      apply({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+      if (controller.signal.aborted) {
+        if (inflight.current === controller) {
+          setEntries((current) => [
+            ...current,
+            { kind: 'note', id: crypto.randomUUID(), text: 'stopped' },
+          ]);
+        }
+      } else {
+        apply({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+      }
     } finally {
-      setBusy(false);
+      // A reset took the conversation away while this was in flight; its
+      // leftovers belong to a turn that no longer exists.
+      const live = inflight.current === controller;
+      if (live) inflight.current = null;
+
+      // Total is measured in the browser on purpose: it is the wait the person
+      // actually sat through, network and all, not the server's share of it.
+      if (live && steps.current.length > 0) {
+        const trace: Entry = {
+          kind: 'trace',
+          id: crypto.randomUUID(),
+          steps: steps.current,
+          totalMs: Date.now() - startedAt,
+        };
+        setEntries((current) => [...current, trace]);
+      }
+      if (live) {
+        setProgress(null);
+        setBusy(false);
+      }
     }
+  }
+
+  /** Stop the question in flight. The route aborts the model call with it. */
+  function stop() {
+    inflight.current?.abort();
+  }
+
+  function reset() {
+    inflight.current?.abort();
+    inflight.current = null;
+    steps.current = [];
+    setEntries([]);
+    setProgress(null);
+    setBusy(false);
+    setConversationId(crypto.randomUUID());
   }
 
   async function pin(entry: Extract<Entry, { kind: 'query' }>) {
@@ -153,10 +283,7 @@ export function Chat({
         {entries.length > 0 && (
           <button
             type="button"
-            onClick={() => {
-              setEntries([]);
-              setConversationId(crypto.randomUUID());
-            }}
+            onClick={reset}
             className="text-xs text-muted hover:text-foreground"
           >
             new conversation
@@ -211,6 +338,7 @@ export function Chat({
                     {entry.name}
                   </span>
                   {entry.summary ? ` → ${entry.summary}` : ' …'}
+                  {entry.ms !== undefined && ` · ${duration(entry.ms)}`}
                 </p>
               );
             case 'query':
@@ -226,6 +354,14 @@ export function Chat({
                   onPin={() => pin(entry)}
                 />
               );
+            case 'trace':
+              return <TracePanel key={entry.id} steps={entry.steps} totalMs={entry.totalMs} />;
+            case 'note':
+              return (
+                <p key={entry.id} className="font-mono text-xs text-muted">
+                  {entry.text}
+                </p>
+              );
             case 'error':
               return (
                 <p
@@ -237,6 +373,8 @@ export function Chat({
               );
           }
         })}
+
+        {progress && <Working progress={progress} />}
         <div ref={bottom} />
       </div>
 
@@ -256,20 +394,71 @@ export function Chat({
                 event.preventDefault();
                 send(draft);
               }
+              if (event.key === 'Escape' && busy) {
+                event.preventDefault();
+                stop();
+              }
             }}
             rows={2}
             placeholder="Ask a question, or say what to put on the dashboard…"
             className="min-h-[2.75rem] flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted"
           />
-          <button
-            type="submit"
-            disabled={busy || !draft.trim()}
-            className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-40"
-          >
-            {busy ? '…' : 'ask'}
-          </button>
+          {busy ? (
+            <button
+              type="button"
+              onClick={stop}
+              className="rounded-lg border border-border px-3 py-2 text-sm text-muted hover:border-primary hover:text-primary"
+            >
+              stop
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!draft.trim()}
+              className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-40"
+            >
+              ask
+            </button>
+          )}
         </div>
       </form>
     </section>
+  );
+}
+
+/**
+ * The live status line. It owns its own clock so the ticking seconds re-render
+ * one paragraph instead of the whole conversation, and it says what is
+ * happening rather than just that something is: `run_query · 2.4s`.
+ */
+function Working({ progress }: { progress: Progress }) {
+  const [, tick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => tick((n) => n + 1), 100);
+    return () => clearInterval(timer);
+  }, []);
+
+  const elapsed = (Date.now() - progress.startedAt) / 1000;
+  const tokens = progress.prompt + progress.output;
+
+  return (
+    <p className="flex items-baseline gap-2 font-mono text-xs text-muted">
+      <span
+        aria-hidden
+        className="size-1.5 shrink-0 self-center rounded-full bg-primary motion-safe:animate-pulse"
+      />
+      <span aria-live="polite" className="text-foreground">
+        {progress.phase}
+      </span>
+      <span aria-hidden className="tabular-nums">
+        {elapsed.toFixed(1)}s
+      </span>
+      {tokens > 0 && (
+        <span aria-hidden className="truncate">
+          · {compact(tokens)} tokens so far
+        </span>
+      )}
+    </p>
   );
 }

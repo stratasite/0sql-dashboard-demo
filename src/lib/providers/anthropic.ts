@@ -7,6 +7,7 @@
  * first turn the bulk of the prompt is a cache read.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import type { TokenUsage } from '@/types';
 import type { Driver, ToolCall, ToolSpec, Turn, TurnRequest, TurnResult } from './types';
 
 const DEFAULT_MODEL = 'claude-opus-5';
@@ -20,6 +21,9 @@ export function anthropicDriver(): Driver {
     model,
 
     async turn({ system, tools, turns, onText, signal }: TurnRequest): Promise<TurnResult> {
+      const started = performance.now();
+      let firstTokenMs: number | undefined;
+
       const stream = client.messages.stream(
         {
           model,
@@ -35,6 +39,14 @@ export function anthropicDriver(): Driver {
         { signal },
       );
 
+      // The first delta is the end of the wait: with thinking on, it can be a
+      // thinking block rather than text, and the pause before it is most of
+      // what a question feels like.
+      stream.on('streamEvent', (event) => {
+        if (firstTokenMs === undefined && event.type === 'content_block_delta') {
+          firstTokenMs = performance.now() - started;
+        }
+      });
       stream.on('text', onText);
       const message = await stream.finalMessage();
 
@@ -51,6 +63,8 @@ export function anthropicDriver(): Driver {
         text,
         calls,
         raw: message.content,
+        usage: toUsage(message.usage),
+        firstTokenMs,
         stopped:
           message.stop_reason === 'refusal'
             ? { reason: 'refusal', detail: message.stop_details?.explanation ?? undefined }
@@ -59,6 +73,24 @@ export function anthropicDriver(): Driver {
               : undefined,
       };
     },
+  };
+}
+
+/**
+ * `input_tokens` here excludes anything served from or written to the cache, so
+ * the prompt total is the three added up. On a warm cache that is the whole
+ * point: a big prompt that costs a tenth of its size.
+ */
+function toUsage(usage: Anthropic.Usage): TokenUsage {
+  const cacheRead = usage.cache_read_input_tokens ?? 0;
+  const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+  const reasoning = usage.output_tokens_details?.thinking_tokens ?? 0;
+  return {
+    prompt: usage.input_tokens + cacheRead + cacheWrite,
+    output: usage.output_tokens,
+    ...(cacheRead ? { cacheRead } : {}),
+    ...(cacheWrite ? { cacheWrite } : {}),
+    ...(reasoning ? { reasoning } : {}),
   };
 }
 

@@ -11,6 +11,7 @@
  * semantic layer" reduces to "can it call a function". The spec is the
  * contract, not the provider.
  */
+import type { TokenUsage } from '@/types';
 
 /** A tool, as the loop knows it. Drivers reshape this for their API. */
 export interface ToolSpec {
@@ -52,6 +53,14 @@ export interface TurnResult {
   raw?: unknown;
   /** Set when the model stopped for a reason the loop should report. */
   stopped?: { reason: 'refusal' | 'length' | 'error'; detail?: string };
+  /**
+   * What the turn cost, in the provider's own numbers, converted to one shape.
+   * Absent when the provider did not report it — a missing count is shown as
+   * missing rather than as a zero.
+   */
+  usage?: TokenUsage;
+  /** Request sent to first streamed delta. The wait the user actually feels. */
+  firstTokenMs?: number;
 }
 
 export interface TurnRequest {

@@ -136,7 +136,7 @@ const spec = z
       .max(5000)
       .optional()
       .describe(
-        'Carried with the query, NOT applied to the SQL. For a top N use a top_n filter with top_n_measure.',
+        'Emitted as a real LIMIT. It cuts after ordering and does not rank, so it answers "show me a few rows", not "top N". For a top N use a top_n filter with top_n_measure, which ranks by the measure first and then cuts.',
       ),
   })
   .strict();
@@ -231,6 +231,12 @@ export interface ToolOutcome {
   isError?: boolean;
   /** One line for the UI's tool trace. */
   summary: string;
+  /**
+   * Where the time inside the tool went. `run_query` is two round trips that
+   * are worth telling apart — 0sql planning the SQL, and the warehouse running
+   * it — because they scale with completely different things.
+   */
+  parts?: { label: string; ms: number }[];
 }
 
 const SQL_IN_RESULT = 2000;
@@ -279,8 +285,14 @@ export async function runTool(
 
       case 'run_query': {
         const { title, chart: wanted, spec: querySpec } = input as z.infer<typeof schemas.run_query>;
+        const planStart = performance.now();
         const planned = await planSql(querySpec as QuerySpec, ctx.context);
+        const queryStart = performance.now();
         const result = await runSql(planned.sql);
+        const parts = [
+          { label: '0sql plan', ms: queryStart - planStart },
+          { label: 'warehouse', ms: performance.now() - queryStart },
+        ];
         const kind = inferChart(wanted, result);
 
         ctx.ran.set(callId, { title, chart: kind, spec: querySpec as QuerySpec, sql: planned.sql });
@@ -312,6 +324,7 @@ export async function runTool(
               : {}),
           }),
           summary: `${result.rows.length} row${result.rows.length === 1 ? '' : 's'} · ${planned.adapter}`,
+          parts,
         };
       }
 

@@ -7,9 +7,15 @@
  * live model, for the user selected in the header — which is why switching
  * user changes the cost tiles, and why none of this breaks when the warehouse
  * is refactored underneath it.
+ *
+ * Each tile opens onto the query behind it. That is worth more here than in the
+ * chat: the SQL under a tile was planned seconds ago for the current user, so
+ * switching user and opening it again is the row-level security policy, visible
+ * in the `WHERE` clause, with the spec above it unchanged.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { ChartView } from './ChartView';
+import { QueryDetails } from './QueryDetails';
 import type { Tile, TileData } from '@/types';
 
 type Loaded = TileData | { tile: Tile; error: string };
@@ -83,9 +89,22 @@ export function Dashboard({ userId, version }: { userId: string; version: number
               </div>
 
               {hasError(loaded) ? (
-                <p className="font-mono text-xs text-primary">{loaded.error}</p>
+                // A tile that would not plan still has its spec, and that is
+                // exactly what you want to read when 0sql has refused it.
+                <>
+                  <p className="font-mono text-xs text-primary">{loaded.error}</p>
+                  <QueryDetails spec={loaded.tile.spec} />
+                </>
               ) : (
-                <ChartView chart={loaded.tile.chart} result={loaded.result} height={200} />
+                <>
+                  <ChartView chart={loaded.tile.chart} result={loaded.result} height={200} />
+                  <QueryDetails
+                    spec={loaded.tile.spec}
+                    sql={loaded.sql}
+                    datasource={loaded.datasource}
+                    adapter={loaded.adapter}
+                  />
+                </>
               )}
             </article>
           ))}
