@@ -877,6 +877,13 @@ fields:
       Answered contacts as a share of the membership base. Volume alone says how
       busy the floor was; this says how much of the customer base felt the need
       to get in touch, which is the number that survives the base growing.
+      Two things to know before quoting it. The numerator is a flow over the
+      period and the denominator is the membership at the end of it, so over a
+      long span it can exceed 100% — read it per day, week or month. And
+      memberships have no call center, so splitting by site or region divides
+      that slice's contacts by the whole membership base; the parts add up to
+      the total, which is what makes it a share of the base rather than a rate
+      within each region.
     synonyms: [contact rate, contacts per member, contact incidence]
     expression:
       sql: ([Answered Count]) / ([Memberships] * 1.000)

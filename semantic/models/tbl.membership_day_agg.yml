@@ -4,7 +4,10 @@ physical_name: membership_day_agg
 datasource: cs_duckdb
 description: Daily membership snapshot pre-aggregated by country, plan and payment attributes.
 cost: 50
-snapshot: Date
+# Points at this table's date dimension by name. Renaming that dimension
+# without updating this line is silent until a snapshot measure is asked
+# for, and then it is an Unresolvable path, not a wrong number.
+snapshot: Membership Agg Date
 fields:
 - type: dimension
   name: Membership Agg Date

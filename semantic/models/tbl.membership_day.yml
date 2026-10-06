@@ -4,7 +4,10 @@ physical_name: membership_day_d
 datasource: cs_duckdb
 description: 'Daily snapshot per subscription: membership state and signup / cancel events.'
 cost: 100
-snapshot: Date
+# Points at this table's date dimension by name. Renaming that dimension
+# without updating this line is silent until a snapshot measure is asked
+# for, and then it is an Unresolvable path, not a wrong number.
+snapshot: Membership Snapshot Date
 fields:
 - type: dimension
   name: Membership Snapshot Date
