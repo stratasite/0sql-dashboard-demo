@@ -14,6 +14,8 @@ next-env.d.ts
 # The dashboard people build while trying the demo.
 data/tiles.json
 
-# Written by `npm run seed` from warehouse/data/*.parquet. The committed copy
-# below it is a convenience; re-seed to re-anchor the dates on today.
+# Built by `npm run seed` from warehouse/data/*.parquet. The database is a build
+# output: it is rewritten on every seed and is ~9x the size of the same data in
+# Parquet, so the Parquet is what ships and this is not committed.
+warehouse/*.duckdb
 warehouse/*.duckdb.wal
