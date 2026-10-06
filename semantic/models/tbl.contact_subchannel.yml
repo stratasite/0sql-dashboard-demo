@@ -1,0 +1,37 @@
+# Contact Subchannel dimension — how the customer reached us.
+datasource: cs_duckdb
+name: Contact Subchannel
+physical_name: cs_contact_subchannel_d
+description: How the customer reached us (inbound call, in-app chat, ...), rolled up to channel.
+cost: 50
+
+fields:
+  - type: dimension
+    name: Contact Subchannel ID
+    data_type: string
+    description: Subchannel identifier (e.g. SC1).
+    synonyms: [subchannel id]
+    expression:
+      sql: contact_subchannel_id
+      lookup: true
+      primary_key: true
+
+  - type: dimension
+    name: Contact Subchannel
+    data_type: string
+    description: Subchannel name - Inbound Call, In-App Call, Callback, Web Chat, In-App Chat, Messaging.
+    synonyms: [subchannel, contact method]
+    expression:
+      sql: contact_subchannel_desc
+      lookup: true
+
+  # Also on Contact Skill, which is the point: one dimension name, and the
+  # planner takes whichever table the rest of the query already needs.
+  - type: dimension
+    name: Contact Channel
+    data_type: string
+    description: Channel the subchannel rolls up to (Phone, Chat).
+    synonyms: [channel]
+    expression:
+      sql: contact_channel_id
+      lookup: true

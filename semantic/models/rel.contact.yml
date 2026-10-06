@@ -16,3 +16,35 @@ contact_to_escalating_call_center:
   sql: "left.escalating_call_center_id = right.call_center_id"
   cardinality: many_to_one
   join: left
+
+# Contact's own dimensions. Every one is many_to_one and left-joined: a contact
+# with an unmatched code must still be counted, or "contacts by channel" would
+# quietly drop rows that "contacts" counts.
+contact_to_transfer_type:
+  left: Contact
+  right: Transfer Type
+  sql: "left.transfer_type_id = right.transfer_type_id"
+  cardinality: many_to_one
+  join: left
+
+contact_to_contact_skill:
+  left: Contact
+  right: Contact Skill
+  sql: "left.contact_skill_id = right.contact_skill_id"
+  cardinality: many_to_one
+  join: left
+
+contact_to_contact_subchannel:
+  left: Contact
+  right: Contact Subchannel
+  sql: "left.contact_subchannel_id = right.contact_subchannel_id"
+  cardinality: many_to_one
+  join: left
+
+# The country the customer contacted from, not the country of the site.
+contact_to_country:
+  left: Contact
+  right: Country
+  sql: "left.contact_origin_country_code = right.country_iso_code"
+  cardinality: many_to_one
+  join: left

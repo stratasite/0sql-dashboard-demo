@@ -1,0 +1,10 @@
+# Two foreign keys point at cs_call_center_d: the site that handled the contact
+# and the site it was escalated to. Nothing in a spec that names "Escalating
+# Call Center" says which column to join on — the planner decides, and if it
+# ever decided wrong the answer would still be a plausible-looking bar chart.
+# This pins the escalation route to escalating_call_center_id.
+name: escalating call center joins on its own key
+projections:
+  - Escalating Call Center
+  - Contacts
+assert_regex: cs_call_center_d.*ON\s+\w+\.escalating_call_center_id\s*=\s*\w+\.call_center_id

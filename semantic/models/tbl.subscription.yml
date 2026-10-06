@@ -1,0 +1,685 @@
+# Ported from the full cs-warehouse model (memberships/tbl.subscription.yml).
+name: Subscription
+physical_name: subscrn_d
+datasource: cs_duckdb
+description: 'Subscriptions (an account can have several over time): signup, plan, payment, cancellation.'
+cost: 50
+fields:
+- type: dimension
+  name: Account ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: account_id
+- type: dimension
+  name: Subscription ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: subscrn_id
+- type: dimension
+  name: Offer ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: offer_id
+- type: dimension
+  name: Signup Country Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: country_iso_code
+- type: dimension
+  name: Latest Plan ID
+  description: Current plan as Upgraded/Downgraded by users during their membership. For Upgrades the
+    change is immediate, for Downgrades the change will be effective starting next billing period. Plan_id
+    is different from plan_rollup_id for a few plans offered prior to 2019 and needs to be joined to plan_d
+    table (and then to plan_rollup_d for additional plan related attributes available in the latter).
+  data_type: integer
+  expression:
+    lookup: true
+    sql: latest_plan_id
+- type: dimension
+  name: Latest Service Stop Date
+  description: date subscription was put on hold, or was cancelled
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: latest_service_stop_date
+- type: dimension
+  name: Is Voluntary Cancel
+  description: Member requested cancellation
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_voluntary_cancel
+- type: dimension
+  name: Subscription Service
+  description: Number of days a subscriber has had service during the current subscription
+  data_type: integer
+  expression:
+    lookup: true
+    sql: subscrn_service_days
+- type: dimension
+  name: Signup Date
+  description: Regional. This is a date where a member provides a MOP, chooses a plan and agrees to a
+    recurring charge every month
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: signup_date
+- type: dimension
+  name: Signup At
+  description: Regional. This is a date where a member provides a MOP, chooses a plan and agrees to a
+    recurring charge every month
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: signup_ts
+- type: dimension
+  name: Date
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: signup_ts
+- type: dimension
+  name: Is Tester
+  description: Indicates test accounts. All values in dse.subscrn_d should be 0 for this column.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_tester
+- type: dimension
+  name: Account Service Days
+  description: Number of days a subscriber has had service over all subscriptions
+  data_type: integer
+  expression:
+    lookup: true
+    sql: account_service_days
+- type: dimension
+  name: Subscription Create Date
+  description: date subscription was created, and in most cases, it matches signup_date, but in some cases,
+    there could be a delay between these dates where the signup happens earlier and then creation happens
+    later.
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: subscrn_create_date
+- type: dimension
+  name: Subscription End Date
+  description: The date on which the subscription ends, i.e. when the subscriber ceases to be a member,
+    either due to voluntary or in-voluntary reasons.
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: subscrn_end_date
+- type: dimension
+  name: Latest Cancel Request Date
+  description: The (regional) date on which cancellation of service was requested for the subscription.
+    The subscription will end on the last day of the period. These requests were primarily made by customers,
+    but starting 05/18/2020 some requests are generated internally, eg. for subscriptions that had no
+    streaming activity. Use is_customer_initiated_cancel = 1 to identify if the cancel request was made
+    by customer.
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: latest_cancel_request_date
+- type: dimension
+  name: Is Customer Initiated Cancel
+  description: Some cancel request are generated internally ie dormant accounts.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_customer_initiated_cancel
+- type: dimension
+  name: Free Trial End Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: free_trial_end_date
+- type: dimension
+  name: Current Billing Partner ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: billing_partner_id
+- type: dimension
+  name: Current Billing Partner
+  description: Current Billing Partner. Examples, like Samsung, LG, iTunes, Comcast,
+  data_type: string
+  expression:
+    lookup: true
+    sql: billing_partner_desc
+- type: dimension
+  name: Is Cash Pay At Signup
+  description: Cash payment methods such as Gift Card and SOIC (Partner codes) was used as method of payment
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_cash_pay_at_signup
+- type: dimension
+  name: Is Free Trial At Signup
+  description: 'Current rule for free trial eligibility is: Customer gets a free trial as long as he/she
+    haven?t gotten one in the last 12 months. You can rejoin within few days and still can get a free
+    trial as long as their previous free trial was before 12 months'
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_free_trial_at_signup
+- type: dimension
+  name: Trial Length Days
+  description: Number of days a member was eligible for free trial. It is based on what we promise customers
+    on our website, e.g. 7, 30 days. It is typically 1 day less than the difference between free_trial_end_date
+    and signup_date
+  data_type: integer
+  expression:
+    lookup: true
+    sql: trial_length_days
+- type: dimension
+  name: Currency Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: currency_code
+- type: dimension
+  name: Pre Signup Membership Status ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: presignup_membership_status_id
+- type: dimension
+  name: Membership Status ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: membership_status_id
+- type: dimension
+  name: Signup At (utc)
+  description: Signup timestamp UTC
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: signup_utc_ts
+- type: dimension
+  name: Signup Plan Rollup ID
+  description: Plan selected by the user at the time of signup. Plan_rollup_id column should be preferred
+    (over signup_plan_id) and joined to plan_rollup_d table to lookup any additional plan attributes.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: signup_plan_rollup_id
+- type: dimension
+  name: Signup Price Tier Code
+  description: Plan/Price/Country combination can tell us the price for a signup plan in a country
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_price_tier_code
+- type: dimension
+  name: Subscription End (utc)
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: subscrn_end_utc_ts
+- type: dimension
+  name: Signup Device Type
+  description: Device Type Id at the time of signup. Can be used to analyze on other device characteristics
+    by joining to look-up tables such as dse.device_type_rollup_d and dse.device_model_rollup_d (use in
+    conjunction with signup_device_model).
+  data_type: integer
+  expression:
+    lookup: true
+    sql: signup_device_type_id
+- type: dimension
+  name: Signup Device Model
+  description: Device Model at the time of signup. Use in conjunction with signup_device_type_id to join
+    with dse.device_model_rollup_d table, to use other columns from there as needed.
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_device_model
+- type: dimension
+  name: Is InApp Signup
+  description: 1 if the signup was in-app, 0 (or null) otherwise.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_inapp_signup
+- type: dimension
+  name: Current Price Tier Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_price_tier_code
+- type: dimension
+  name: Signup Device UI Version
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_device_ui_version
+- type: dimension
+  name: Signup Device Client Version
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_device_client_version
+- type: dimension
+  name: Signup User Agent
+  data_type: string
+  expression:
+    sql: user_agent
+- type: dimension
+  name: Is MoP Rejoin
+  description: Identifies if a subscription is MOP based rejoin, see go/rejoin for details of logic used.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_mop_rejoin
+- type: dimension
+  name: Is Email Rejoin
+  description: Identifies if a subscription is email based rejoin, see go/rejoin for details of logic
+    used.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_email_rejoin
+- type: dimension
+  name: Is Device Rejoin
+  description: Identifies if a subscription is device (ESN) based rejoin, see go/rejoin for details of
+    logic used.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_device_rejoin
+- type: dimension
+  name: Is Other Rejoin
+  description: Identifies if a subscription is marked as rejoin based on other unknown criteria. This
+    is primarily used for some legacy/historical data.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_other_rejoin
+- type: dimension
+  name: Is Rejoin
+  description: Identifies if a subscription is rejoin based on either email, MOP or device, i.e. it is
+    set to 1 if is_email_rejoin and/or is_mop_rejoin and/or is_device_rejoin are set to 1.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_rejoin
+- type: dimension
+  name: Fraud Flag
+  description: This flag can be applied to an account at any point in its lifecycle - during the signup
+    process, during the free trial, after the free trial has ended, or even post-cancellation in some
+    cases
+  data_type: integer
+  expression:
+    lookup: true
+    sql: fraud_flag
+- type: dimension
+  name: Current MoP ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: mop_id
+- type: dimension
+  name: Is Channel GiftCard
+  description: For identifying gift card signups
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_channel_giftcard
+- type: dimension
+  name: Is Channel PPP
+  description: For identifying prepaid promotion signups
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_channel_ppp
+- type: dimension
+  name: Signup Billing Partner ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: signup_billing_partner_id
+- type: dimension
+  name: Signup Billing Partner
+  description: Billing Partner at signup. Examples, like Samsung, LG, iTunes, Comcast,
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_billing_partner_desc
+- type: dimension
+  name: Is Package Offer
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_package_offer
+- type: dimension
+  name: Package Offer Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: package_offer_type
+- type: dimension
+  name: Package Offer Provider
+  data_type: string
+  expression:
+    lookup: true
+    sql: package_offer_provider_desc
+- type: dimension
+  name: Package Offer Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: package_offer_name
+- type: dimension
+  name: Is Open Access Signup
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_open_access_signup
+- type: dimension
+  name: Open Access Provider
+  data_type: string
+  expression:
+    lookup: true
+    sql: open_access_provider_desc
+- type: dimension
+  name: Is Open Access Conversion
+  description: Comcast Watchthon 2017 converted
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_open_access_conversion
+- type: dimension
+  name: Open Access Conversion Provider
+  description: Comcast Watchthon 2017
+  data_type: string
+  expression:
+    lookup: true
+    sql: open_access_conversion_provider_desc
+- type: dimension
+  name: Agreement ID
+  description: Partner Revenue Share agreement
+  data_type: string
+  expression:
+    lookup: true
+    sql: agreement_id
+- type: dimension
+  name: Signup Partner Guid ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: partner_guid
+- type: dimension
+  name: Signup Partner Type
+  description: Acquisition channel BROWSER, DEVICE, PREPAID_PROMO, PRELOAD, AGENTASSIST, IPMT_OTHER, PROMO_ORG/URL,
+    CSASSIST, IPMT_BROWSER, POSTLOAD
+  data_type: string
+  expression:
+    lookup: true
+    sql: partner_type
+- type: dimension
+  name: Signup Payment Type
+  description: Payment Type at the time of sign-up, possible values include Debit, Credit, Direct Debit,
+    Paypal, Prepaid, ITUNES, Gift Card, PLAYSTORE, PPP, COMCAST, SOFTBANK, TOMOBILE_US, GLOBE, VODAFONE,
+    ORANGE.
+  data_type: string
+  expression:
+    lookup: true
+    sql: pmt_type_desc
+- type: dimension
+  name: Is DCB Signup
+  description: Direct Carrier Billing signups - based on the ptd_DIRECT_CARRIER_BILLING value passed by
+    PSE to Membership Eng in the CREATE_MEMBERSHIP event
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_dcb_signup
+- type: dimension
+  name: Signup Subscription Type
+  description: P (paying only), S (streaming only), PS (paying and streaming), AS (addon streaming) -
+    this is a beneficiary sub from the Extra Member product
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_subscription_type
+- type: dimension
+  name: Current Subscription Type
+  description: P (paying only), S (streaming only), PS (paying and streaming), AS (addon streaming) -
+    this is a beneficiary sub from the Extra Member product
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_subscription_type
+- type: dimension
+  name: Latest Billing Paused At (utc)
+  description: This is only populated for S accounts that were PS prior to connecting to a paying only
+    account (NIO account)
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: latest_billing_pause_utc_ts
+- type: dimension
+  name: Latest Billing Resumed At (utc)
+  description: This is only populated for S accounts that are disconnected from P account and becoming
+    PS.
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: latest_billing_resume_utc_ts
+- type: dimension
+  name: Current Connected Account ID
+  description: NULL for S and PS accounts but populated for P accounts. i.e this has the account id of
+    the Paying account.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: current_connected_to_account_id
+- type: dimension
+  name: First Connect Region Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: first_connect_region_date
+- type: dimension
+  name: First Connected At (utc)
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: first_connect_utc_ts
+- type: dimension
+  name: Lastest Disconnect Region Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: lastest_disconnect_region_date
+- type: dimension
+  name: Lastest Disconnected At (utc)
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: lastest_disconnect_utc_ts
+- type: dimension
+  name: Current Billing Partner Brand
+  data_type: string
+  expression:
+    lookup: true
+    sql: billing_partner_service_provider
+- type: dimension
+  name: Is Migrated
+  description: This flag was added per NIO project to identify accounts that had TMOBILE_US billing partner
+    prior to launching the new NIO platform and had to be migrated to the new platform. For more details
+    check, go/man/nio *This also includes customers from TDC migration
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_migrated
+- type: dimension
+  name: Is MDS
+  description: Multi device signup
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_mds
+- type: dimension
+  name: Signup Paid Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_paid_category
+- type: dimension
+  name: Current Paid Category
+  description: Plan/Price/Country combination can tell us the price for a current plan in a country
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_paid_category
+- type: dimension
+  name: Tax Region
+  description: Tax region in which this subscription was created.
+  data_type: string
+  expression:
+    lookup: true
+    sql: tax_region
+- type: dimension
+  name: Offer Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: offer_type
+- type: dimension
+  name: Offer Duration
+  description: Number of days or months of offer with which this subscription was created. Use in conjunction
+    with offer_duration_type column. Populated for subscriptions starting 05/12/2019.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: offer_duration
+- type: dimension
+  name: Offer Duration Type
+  description: Type of offer duration (eg. DAYS or MONTHS) used to create this subscription. Use in conjunction
+    with offer_duration column. Populated for subscriptions starting 05/12/2019.
+  data_type: string
+  expression:
+    lookup: true
+    sql: offer_duration_type
+- type: measure
+  name: '# Adjusted Signups'
+  description: If a P account connects to a current member then =0, when it connects to a new Streaming
+    account = 1, when it connects to an S account that has previously had another P account connected
+    to it = 0, and this value is allowed to change up to 28 days from signup
+  data_type: integer
+  expression:
+    sql: sum(adjusted_signup_cnt)
+- type: measure
+  name: '# Subscriptions'
+  description: Distinct count of subscription ids. Could be used for signup counts.
+  data_type: integer
+  expression:
+    sql: count(distinct subscrn_id)

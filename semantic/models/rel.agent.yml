@@ -1,0 +1,52 @@
+# The agent hierarchy, and why there are two routes to a supervisor.
+#
+# `Current Supervisor` hangs off the agent record: who they report to today.
+# `Supervisor` hangs off agent history, keyed by the day of the contact: who
+# they reported to *then*. Reorganise the floor and only one of those changes
+# the answer to "how did this team do last quarter". Both are modelled because
+# both questions are legitimate, and conflating them is the usual way an
+# attribution report quietly becomes wrong.
+datasource: cs_duckdb
+
+contact_to_agent:
+  left: Contact
+  right: Agent
+  sql: "left.agent_user_id = right.agent_user_id"
+  cardinality: many_to_one
+  join: left
+
+agent_to_current_supervisor:
+  left: Agent
+  right: Current Supervisor
+  sql: "left.current_supervisor_user_id = right.agent_user_id"
+  cardinality: many_to_one
+  join: left
+
+current_supervisor_to_current_manager:
+  left: Current Supervisor
+  right: Current Manager
+  sql: "left.current_supervisor_user_id = right.agent_user_id"
+  cardinality: many_to_one
+  join: left
+
+# Keyed on the day as well as the agent: this is the roster as it stood.
+contact_to_agent_history:
+  left: Contact
+  right: Agent History
+  sql: "left.agent_user_id = right.agent_user_id and left.fact_utc_date = right.calendar_date"
+  cardinality: many_to_one
+  join: left
+
+agent_history_to_supervisor:
+  left: Agent History
+  right: Supervisor
+  sql: "left.supervisor_user_id = right.agent_user_id"
+  cardinality: many_to_one
+  join: left
+
+agent_history_to_manager:
+  left: Agent History
+  right: Manager
+  sql: "left.manager_user_id = right.agent_user_id"
+  cardinality: many_to_one
+  join: left

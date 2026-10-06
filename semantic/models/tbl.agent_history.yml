@@ -1,0 +1,76 @@
+# Ported from the full cs-warehouse model (cs/tbl.agent_history.yml).
+name: Agent History
+physical_name: cs_agent_hist_d
+datasource: cs_duckdb
+description: 'Daily history per agent: tenure, supervisor, manager, role and cost rate on that day.'
+cost: 70
+fields:
+- type: dimension
+  name: Agent Roster Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: calendar_date
+  synonyms:
+  - Date
+- type: dimension
+  name: Agent Tenure Days
+  data_type: integer
+  expression:
+    lookup: true
+    sql: tenure_day_cnt
+- type: dimension
+  name: Agent Tenure Weeks
+  data_type: string
+  expression:
+    lookup: true
+    sql: case when tenure_day_cnt <= 0 then 'N/A' when floor(tenure_day_cnt/7) < 52 then cast(cast(floor(tenure_day_cnt/7)
+      as integer) as varchar) else '52+' end
+- type: dimension
+  name: Supervisor User ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: supervisor_user_id
+  synonyms:
+  - Supervisor Email
+- type: dimension
+  name: Manager User ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: manager_user_id
+  synonyms:
+  - Manager Email
+- type: dimension
+  name: Agent Role Code On Day
+  data_type: string
+  expression:
+    lookup: true
+    sql: agent_role_code
+  synonyms:
+  - Agent Role Code
+- type: dimension
+  name: Agent Cost Rate
+  data_type: decimal
+  expression:
+    lookup: true
+    sql: agent_cost_rate
+- type: dimension
+  name: Has Agent Secondary Skills
+  data_type: integer
+  expression:
+    lookup: true
+    sql: has_agent_secondary_skills
+- type: dimension
+  name: Skillset Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: skillset_name

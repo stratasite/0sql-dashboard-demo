@@ -1,0 +1,254 @@
+# Ported from the full cs-warehouse model (memberships/tbl.account.yml).
+name: Account
+physical_name: account_d
+datasource: cs_duckdb
+description: Customer accounts.
+cost: 50
+fields:
+- type: dimension
+  name: Account ID
+  data_type: integer
+  expression:
+    primary_key: true
+    lookup: true
+    sql: account_id
+- type: dimension
+  name: Account Registration Country Code
+  description: Country of registration i.e when email was provided
+  data_type: string
+  expression:
+    lookup: true
+    sql: country_iso_code
+- type: dimension
+  name: Account Created At
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: account_creation_ts
+- type: dimension
+  name: Account Primary Language
+  description: the customers choice for language
+  data_type: string
+  expression:
+    lookup: true
+    sql: primary_language
+- type: dimension
+  name: Account Primary Language Iso Code
+  description: the customers choice for language code
+  data_type: string
+  expression:
+    lookup: true
+    sql: primary_language_iso_code
+- type: dimension
+  name: Account Email Domain Name
+  description: The domain of the email used for registration like gmail.com etc
+  data_type: string
+  expression:
+    lookup: true
+    sql: email_domain_name
+- type: dimension
+  name: Account Source Name
+  description: How the account was created, name of service, batch app etc. Written at time of account
+    creation
+  data_type: string
+  expression:
+    lookup: true
+    sql: account_source_name
+- type: dimension
+  name: Current Plan ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: plan_id
+- type: dimension
+  name: Membership Status
+  description: The number with the following mapping 0 -> NEVER_MEMBER , 1 -> FORMER_MEMBER,2 -> CURRENT_MEMBER,
+    3 -> FE_HOLD_MEMBER, 4 -> ACCOUNT_HOLD_MEMBER, 5 -> NON_REGISTERED_MEMBER, -1 -> UNKNOWN
+  data_type: integer
+  expression:
+    lookup: true
+    sql: membership_status
+- type: dimension
+  name: Membership Status Detail
+  data_type: string
+  expression:
+    lookup: true
+    sql: membership_status_desc
+- type: dimension
+  name: Has Service
+  description: If member is current member and is not on hold
+  data_type: integer
+  expression:
+    lookup: true
+    sql: has_service
+- type: dimension
+  name: DVD Has Service
+  description: True if the customer has an active DVD subscription
+  data_type: integer
+  expression:
+    lookup: true
+    sql: dvd_has_service
+- type: dimension
+  name: Is Service On Hold
+  description: A flag indication there is a hold that prevents service
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_service_on_hold
+- type: dimension
+  name: Is Free Trial Period
+  description: Is the customer in a free trial
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_free_trial_period
+- type: dimension
+  name: Is Tester
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_tester
+- type: dimension
+  name: Signup Country Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_country_iso_code
+- type: dimension
+  name: Account Updated At
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: account_registration_ts
+- type: dimension
+  name: Account Email Domain Type
+  description: Domain type of the email like .com .org
+  data_type: string
+  expression:
+    lookup: true
+    sql: email_domain_type
+- type: dimension
+  name: Account Registered At
+  description: Account registration time. The date/time that the customer gave us credentials
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: account_registration_ts
+- type: dimension
+  name: Account Phone Country Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: phone_countrycode
+- type: dimension
+  name: Account Phone Verified
+  data_type: string
+  expression:
+    lookup: true
+    sql: phone_verified
+- type: dimension
+  name: Youth Maturity Threshold
+  description: If the pin is enabled then this limit causes the pin to be asked for for any profile
+  data_type: integer
+  expression:
+    lookup: true
+    sql: youth_maturity_threshold
+- type: dimension
+  name: Age Verification Time
+  description: Time when age verification occurred
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: age_verification_time
+- type: dimension
+  name: Account Cancelled At
+  description: The last time the account transitions into the former member state. This value will be
+    null until the account has become canceled the first time. This date is the date when the customer
+    stopped receiving service due to membership status, and should not be confused with when the customer
+    chose to cancel, or when service stopped prior to the membership status change due to a service blocking
+    hold such as lack of payment.
+  data_type: date_time
+  grains:
+  - raw
+  - hour
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    sql: cancellation_date_ts
+- type: dimension
+  name: Parental Control Flags
+  data_type: string
+  expression:
+    lookup: true
+    sql: parental_control_flags
+- type: dimension
+  name: Youth Maturity Pin Enabled
+  data_type: boolean
+  expression:
+    lookup: true
+    sql: youth_maturity_pin_enabled
+- type: dimension
+  name: Is Partner Preview Account
+  description: If the account is a partner preview account - also used to identify free preview members
+    with additional conditions
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_partner_preview_account
+- type: dimension
+  name: User Privilege Groups
+  data_type: string
+  expression:
+    lookup: true
+    sql: user_privilege_groups
+- type: dimension
+  name: Is SOPS Account
+  description: If the account is a is_sops_account
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_sops_account
+- type: dimension
+  name: Public Handle
+  data_type: string
+  expression:
+    lookup: true
+    sql: public_handle
+- type: dimension
+  name: Has Content Portability Expired
+  description: If the EU content portability for the account has expired
+  data_type: integer
+  expression:
+    lookup: true
+    sql: has_content_portability_expired

@@ -82,6 +82,7 @@ fields:
   - type: dimension
     name: Contact Subchannel ID
     data_type: string
+    synonyms: [subchannel, channel]
     expression:
       sql: contact_subchannel_id
       lookup: true
@@ -89,6 +90,7 @@ fields:
   - type: dimension
     name: Contact Skill ID
     data_type: string
+    synonyms: [skill, skill id, queue]
     expression:
       sql: contact_skill_id
       lookup: true
@@ -96,6 +98,8 @@ fields:
   - type: dimension
     name: Transfer Type ID
     data_type: string
+    description: Transfer code (NT, TI-ESC, TI-LANG, TO-WARM, TO-COLD).
+    synonyms: [transfer code]
     expression:
       sql: transfer_type_id
       lookup: true
@@ -189,9 +193,14 @@ fields:
       sql: chat_end_state_desc
       lookup: true
 
+  # The full model calls these "Driver Category / Level1 / Level2". Kept as
+  # synonyms rather than renames: the names here are what the app's tiles and
+  # the agent's prompt already use, and search_fields resolves either.
   - type: dimension
     name: Ticket Disposition Level 0
     data_type: string
+    description: Top-level contact driver — why the customer got in touch.
+    synonyms: [driver category, driver, contact driver, contact reason]
     expression:
       sql: ticket_disposition_level0_desc
       lookup: true
@@ -199,6 +208,7 @@ fields:
   - type: dimension
     name: Ticket Disposition Level 1
     data_type: string
+    synonyms: [driver level1, sub driver]
     expression:
       sql: ticket_disposition_level1_desc
       lookup: true
@@ -206,6 +216,7 @@ fields:
   - type: dimension
     name: Ticket Disposition Level 2
     data_type: string
+    synonyms: [driver level2]
     expression:
       sql: ticket_disposition_level2_desc
       lookup: true
@@ -214,6 +225,7 @@ fields:
     name: Ticket Resolution Gate
     data_type: string
     description: Resolution outcome (Resolved, Escalated, Follow-up Required, Referred Externally, Customer Education).
+    synonyms: [resolution, next steps, resolution gate]
     expression:
       sql: ticket_resolution_gate_desc
       lookup: true
@@ -277,6 +289,7 @@ fields:
   - type: dimension
     name: Agent User ID
     data_type: string
+    synonyms: [agent email, agent]
     expression:
       sql: agent_user_id
       lookup: true
@@ -284,6 +297,7 @@ fields:
   - type: dimension
     name: Supervisor User ID
     data_type: string
+    synonyms: [supervisor email, supervisor]
     expression:
       sql: supervisor_user_id
       lookup: true
@@ -291,6 +305,7 @@ fields:
   - type: dimension
     name: Manager User ID
     data_type: string
+    synonyms: [manager email, manager]
     expression:
       sql: manager_user_id
       lookup: true
@@ -621,3 +636,255 @@ fields:
     description: CSR1 + CSR2 + non-BPO + telecom cost.
     expression:
       sql: sum(coalesce(csr1_cost_usd, 0) + coalesce(csr2_cost_usd, 0) + coalesce(non_bpo_cost_usd, 0) + coalesce(telecom_cost_usd, 0))
+
+  # ================================================================ derived
+  # The measures above are raw sums: additive, and safe to slice by anything.
+  # The ones below are the numbers the business actually runs on, and they are
+  # ratios — which is exactly why they belong here rather than in whatever
+  # formula a caller writes. A ratio of two sums is not the sum of two ratios,
+  # so "average handle time by region" computed per row and averaged is wrong,
+  # and it is wrong in a way nobody notices. Published once, it is computed
+  # once, the same way, for the dashboard, the agent and any other client.
+
+  # --- throughput and service level
+  - type: measure
+    name: Handled Minutes
+    data_type: decimal
+    description: >-
+      Productive agent minutes — answer hold, talk and after-call work — on
+      contacts this site actually handled. Transfer-outs are excluded: that
+      time belongs to whoever the contact went to.
+    synonyms: [productive minutes, handle minutes, agent minutes]
+    expression:
+      sql: >-
+        sum(case when [Major Transfer Type] <> 'TRANSFER_OUT'
+                 then answer_hold_duration_secs + talk_duration_secs + acw_duration_secs
+                 else 0 end) / 60.0
+
+  - type: measure
+    name: AHT Mins
+    data_type: decimal
+    format: number:2
+    description: >-
+      Average handle time per answered contact, in minutes: answer hold plus
+      talk plus after-call work. This is handle time in the industry sense, and
+      it is not Average Contact Duration Secs, which is wall-clock from arrival
+      to end and includes queue time nobody was working.
+    synonyms: [AHT, average handle time, handle time]
+    expression:
+      sql: >-
+        sum(answer_hold_duration_secs + talk_duration_secs + acw_duration_secs)
+          / nullif(sum(answered_cnt), 0) / 60.0
+
+  - type: measure
+    name: ASA Secs
+    data_type: decimal
+    format: number:1
+    description: >-
+      Average speed of answer, in seconds: gateway time plus the queue wait of
+      contacts that were answered, over answered contacts.
+    synonyms: [ASA, average speed of answer, speed of answer, wait time]
+    expression:
+      sql: >-
+        sum((case when answered_cnt > 0 then customer_queue_duration_secs else 0 end)
+            + gateway_duration_secs) * 1.0 / nullif(sum(answered_cnt), 0)
+
+  - type: measure
+    name: ART Secs
+    data_type: decimal
+    format: number:1
+    description: Average agent response time on a chat contact, in seconds.
+    synonyms: [ART, agent response time, response time]
+    expression:
+      sql: sum(agent_response_sec) * 1.0 / nullif(sum(agent_response_cnt), 0)
+
+  - type: measure
+    name: SLA Rate
+    data_type: decimal
+    format: percent:1
+    description: Share of answered contacts that were answered inside the SLA.
+    synonyms: [service level, in SLA, '% in SLA']
+    expression:
+      sql: sum(answered_in_sla_cnt) * 1.0 / nullif(sum(answered_cnt), 0)
+
+  - type: measure
+    name: Abandon Rate
+    data_type: decimal
+    format: percent:1
+    description: Share of contacts offered to a skill that the customer abandoned.
+    synonyms: ['% abandoned skill', abandonment rate, abandon]
+    expression:
+      sql: sum(bpo_skill_abandoned_cnt) * 1.0 / nullif(sum(bpo_skill_cnt), 0)
+
+  - type: measure
+    name: Gateway Abandon Rate
+    data_type: decimal
+    format: percent:1
+    description: Share of gateway contacts abandoned before reaching a skill.
+    synonyms: [gateway abandonment, IVR abandon rate]
+    expression:
+      sql: sum(gateway_abandoned_cnt) * 1.0 / nullif(sum(gateway_cnt), 0)
+
+  # --- outcomes
+  - type: measure
+    name: Escalation Rate
+    data_type: decimal
+    format: percent:1
+    description: >-
+      Share of handled contacts where the agent asked for assistance.
+      Transfer-outs are out of the denominator — they were handed off, not
+      escalated.
+    synonyms: ['% esc rate', escalation, escalations]
+    expression:
+      sql: >-
+        sum(is_assistance_requested) * 1.0
+          / nullif(sum(case when [Major Transfer Type] <> 'TRANSFER_OUT'
+                            then answered_cnt else 0 end), 0)
+
+  - type: measure
+    name: Makegood Rate
+    data_type: decimal
+    format: percent:1
+    description: Share of tickets that resulted in a credit or refund.
+    synonyms: ['% MG rate', makegood ticket rate]
+    expression:
+      sql: sum(makegood_ticket_cnt) * 1.0 / nullif(sum(ticket_cnt), 0)
+
+  - type: measure
+    name: Makegood Amount Per Ticket
+    data_type: decimal
+    format: currency:2
+    description: >-
+      Makegood dollars per ticket handled here. The full model calls this
+      "$ MG per Contact"; the denominator is tickets, not contacts, so it is
+      named for what it divides by.
+    synonyms: ['$ MG per contact', makegood per ticket]
+    expression:
+      sql: >-
+        sum(makegood_amt) * 1.0
+          / nullif(sum(case when [Major Transfer Type] <> 'TRANSFER_OUT'
+                            then ticket_cnt else 0 end), 0)
+
+  - type: measure
+    name: Authenticated Rate
+    data_type: decimal
+    format: percent:1
+    description: >-
+      Share of answered contacts where the customer was identified. account_id
+      is -1 when they were not, which is a value, not a null.
+    synonyms: ['% authenticated', authentication rate, identified]
+    expression:
+      sql: >-
+        sum(case when account_id is not null and account_id <> -1
+                 then answered_cnt else 0 end) * 1.0
+          / nullif(sum(answered_cnt), 0)
+
+  # --- distinct counts. Not additive: the agents working Manila and the agents
+  # working Cebu do not add up to the agents working both, and asking for this
+  # by month will not sum to the year.
+  - type: measure
+    name: Agents
+    data_type: bigint
+    description: Distinct agents who handled a contact in the slice.
+    synonyms: ['# agents', headcount, distinct agents]
+    expression:
+      sql: count(distinct agent_user_id)
+
+  - type: measure
+    name: Accounts Contacting
+    data_type: bigint
+    description: >-
+      Distinct customer accounts that made contact. Unidentified callers carry
+      account_id -1 and are excluded, so this counts customers rather than
+      counting "unknown" as one of them.
+    synonyms: ['# accounts contacting', unique customers, distinct accounts]
+    expression:
+      sql: count(distinct case when account_id <> -1 then account_id end)
+
+  # --- unit cost (USD)
+  # Every one of these is tagged `cost-sensitive`, for the same reason the raw
+  # cost sums are: a rate derived from cost is still cost. Leave the tag off and
+  # the Regional Cost Visibility policy stops firing, and a caller who may not
+  # read EMEA cost can read EMEA cost per contact instead.
+  - type: measure
+    name: CSR1 Cost Per Contact USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    format: currency:2
+    synonyms: [CSR1 CPC]
+    expression:
+      sql: sum(csr1_cost_usd) * 1.0 / nullif(sum(answered_cnt), 0)
+
+  - type: measure
+    name: CSR2 Cost Per Contact USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    format: currency:2
+    synonyms: [CSR2 CPC]
+    expression:
+      sql: sum(csr2_cost_usd) * 1.0 / nullif(sum(answered_cnt), 0)
+
+  - type: measure
+    name: Telecom Cost Per Contact USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    format: currency:2
+    synonyms: [telecom CPC]
+    expression:
+      sql: sum(telecom_cost_usd) * 1.0 / nullif(sum(answered_cnt), 0)
+
+  - type: measure
+    name: Non-BPO Cost Per Contact USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    format: currency:2
+    synonyms: [non BPO CPC]
+    expression:
+      sql: sum(non_bpo_cost_usd) * 1.0 / nullif(sum(answered_cnt), 0)
+
+  # A compound over the totals, not the sum of the four rates above: a component
+  # with no rows contributes a null, and null + 4.59 is null. The full model
+  # adds the rates and inherits that hole.
+  - type: measure
+    name: Cost Per Contact USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    format: currency:2
+    description: Total customer service cost per answered contact (CPC).
+    synonyms: [CPC, CS CPC, cost per contact, unit cost]
+    expression:
+      sql: ([Total Contact Cost USD]) * 1.0 / nullif([Answered Count], 0)
+
+  - type: measure
+    name: Cost Per Minute USD
+    tags: [cost-sensitive]
+    data_type: decimal
+    format: currency:2
+    description: Total customer service cost per productive agent minute (CPM).
+    synonyms: [CPM, CS CPM, cost per minute]
+    expression:
+      sql: ([Total Contact Cost USD]) * 1.0 / nullif([Handled Minutes], 0)
+
+  # --- measures that reach past the contact fact
+  # These were impossible until the membership and recontact tables were in the
+  # model. They are compounds across facts: the host table (this one) sets the
+  # dimensionality, and the planner works out the join.
+  - type: measure
+    name: Contact Rate
+    data_type: decimal
+    format: percent:3
+    description: >-
+      Answered contacts as a share of the membership base. Volume alone says how
+      busy the floor was; this says how much of the customer base felt the need
+      to get in touch, which is the number that survives the base growing.
+    synonyms: [contact rate, contacts per member, contact incidence]
+    expression:
+      sql: ([Answered Count]) / ([Memberships] * 1.000)
+
+  - type: measure
+    name: Agent Reconnect Contacts
+    data_type: bigint
+    description: Answered contacts where the agent reconnected with the customer.
+    synonyms: ['# agent reconn. volume', agent reconnect]
+    expression:
+      sql: sum(case when [Is Agent Reconnect] = 1 then answered_cnt else 0 end)

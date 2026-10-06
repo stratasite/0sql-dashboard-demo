@@ -64,7 +64,9 @@ const starter: Tile[] = [
       name: 'Average handle time by region',
       projections: [
         { field: 'Call Center Region' },
-        { field: 'Average Contact Duration Secs', alias: 'Avg Handle Secs', order_by: 'desc' },
+        // AHT Mins, not Average Contact Duration Secs: handle time is the work
+        // the agent did, not the wall clock from arrival to hang-up.
+        { field: 'AHT Mins', order_by: 'desc' },
       ],
     },
   },

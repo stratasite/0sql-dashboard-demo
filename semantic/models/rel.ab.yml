@@ -1,0 +1,59 @@
+# A/B allocations. Members and non-members are allocated through different
+# tables, so they are separate facts rather than one with a flag.
+datasource: cs_duckdb
+
+ab_member_to_test:
+  left: AB Member Allocations
+  right: AB Test Details
+  sql: "left.test_id = right.test_id"
+  cardinality: many_to_one
+  join: left
+
+ab_nm_to_test:
+  left: AB NM Allocations
+  right: AB Test Details
+  sql: "left.test_id = right.test_id"
+  cardinality: many_to_one
+  join: left
+
+ab_member_to_country:
+  left: AB Member Allocations
+  right: Country
+  sql: "left.alloc_country_iso_code = right.country_iso_code"
+  cardinality: many_to_one
+  join: left
+
+ab_nm_to_country:
+  left: AB NM Allocations
+  right: Country
+  sql: "left.country_iso_code = right.country_iso_code"
+  cardinality: many_to_one
+  join: left
+
+ab_member_to_subscription:
+  left: AB Member Allocations
+  right: Subscription
+  sql: "left.subscrn_id = right.subscrn_id and left.account_id = right.account_id"
+  cardinality: many_to_one
+  join: left
+
+ab_nm_to_subscription:
+  left: AB NM Allocations
+  right: Subscription
+  sql: "left.subscrn_id = right.subscrn_id and left.account_id = right.account_id"
+  cardinality: many_to_one
+  join: left
+
+# Allocation is "as of" rather than exact: a contact counts for a test the
+# member was already allocated to.
+contact_to_ab_member:
+  left: Contact
+  right: AB Member Allocations
+  sql: "left.account_id = right.account_id and left.fact_utc_date >= right.alloc_utc_date"
+  cardinality: many_to_one
+
+contact_to_ab_nm:
+  left: Contact
+  right: AB NM Allocations
+  sql: "left.account_id = right.account_id and date_diff('day', right.alloc_utc_date, left.fact_utc_date) <= 7"
+  cardinality: many_to_one

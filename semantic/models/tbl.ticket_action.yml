@@ -1,0 +1,85 @@
+# Ported from the full cs-warehouse model (cs/tbl.cs_ticket_actions.yml).
+name: Ticket Action
+physical_name: cs_ticket_action_f
+datasource: cs_duckdb
+description: Individual actions an agent takes on the ticket while handling a contact (many per contact).
+cost: 200
+fields:
+- type: dimension
+  name: CST Is Failed
+  description: CS ticket (CST) action failed during contact
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_failed
+- type: dimension
+  name: CST Failed Reason
+  description: CS ticket (CST) action failure reason during contact
+  data_type: string
+  expression:
+    lookup: true
+    sql: failed_reason_desc
+- type: dimension
+  name: Call Center ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: call_center_id
+- type: dimension
+  name: Agent Email
+  data_type: string
+  expression:
+    lookup: true
+    sql: agent_user_id
+- type: dimension
+  name: CST Action Category Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: action_category_code
+- type: dimension
+  name: Account ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: customer_id
+- type: dimension
+  name: CST Currency Code
+  description: CS ticket (CST) currency code of any monetary action during contact
+  data_type: string
+  expression:
+    lookup: true
+    sql: currency_code
+- type: dimension
+  name: CST Email Template ID
+  description: CS ticket (CST) email template ID used for follow up emails after contact
+  data_type: string
+  expression:
+    lookup: true
+    sql: email_template_id
+- type: dimension
+  name: CST Emailed Article ID
+  description: The article included in follow up emails for a CS contact
+  data_type: string
+  expression:
+    lookup: true
+    sql: emailed_kb_node_id
+- type: dimension
+  name: CST Additional Notes
+  data_type: string
+  expression:
+    sql: additional_notes_text
+- type: dimension
+  name: Contact Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: fact_utc_date
+  synonyms:
+  - Date

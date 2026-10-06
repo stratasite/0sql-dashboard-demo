@@ -1,0 +1,70 @@
+# Contact Skill dimension — the routing skill a contact landed in.
+datasource: cs_duckdb
+name: Contact Skill
+physical_name: cs_contact_skill_d
+description: Routing skill of a contact - channel, language and escalation tier.
+cost: 50
+
+fields:
+  # Named to match the fact's foreign key rather than the source model's
+  # "Skill ID": one concept, one dimension name across the star.
+  - type: dimension
+    name: Contact Skill ID
+    data_type: string
+    description: Skill identifier (e.g. SK01).
+    synonyms: [skill id, queue id]
+    expression:
+      sql: contact_skill_id
+      lookup: true
+      primary_key: true
+
+  - type: dimension
+    name: Skill
+    data_type: string
+    description: Skill name, e.g. "Phone - English - Tier 1".
+    synonyms: [skill name, queue, routing skill]
+    expression:
+      sql: contact_skill_desc
+      lookup: true
+
+  - type: dimension
+    name: Skill Language Code
+    data_type: string
+    description: ISO language code the skill serves.
+    synonyms: [language, language iso code]
+    expression:
+      sql: language_iso_code
+      lookup: true
+
+  - type: dimension
+    name: Forecast Skill ID
+    data_type: string
+    description: Skill group used for forecasting and staffing.
+    expression:
+      sql: forecast_skill_id
+      lookup: true
+
+  - type: dimension
+    name: Escalation Code
+    data_type: string
+    description: Escalation tier of the skill (T1, T2).
+    synonyms: [tier, escalation tier]
+    expression:
+      sql: escalation_code
+      lookup: true
+
+  # Deliberately NOT "Contact Channel". Both this table and Contact Subchannel
+  # carry a channel column, and leaving them one name made the route from a
+  # contact to its channel ambiguous — the planner warned, then picked skill.
+  # They are not the same fact: this is the channel the skill is staffed for,
+  # and the one on Contact Subchannel is the channel the customer actually
+  # arrived on. For a contact routed to a mismatched skill they disagree, and
+  # that disagreement is worth being able to see rather than averaging away.
+  - type: dimension
+    name: Skill Channel
+    data_type: string
+    description: Channel the skill is staffed for (Phone, Chat). For how the contact arrived, use Contact Channel.
+    synonyms: [staffed channel]
+    expression:
+      sql: contact_channel_id
+      lookup: true

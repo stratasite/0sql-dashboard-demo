@@ -1,0 +1,190 @@
+# Ported from the full cs-warehouse model (cs/tbl.agent.yml).
+name: Agent
+physical_name: cs_agent_d
+datasource: cs_duckdb
+description: 'Customer service staff: agents, and also the supervisors and managers they report to.'
+cost: 50
+fields:
+- type: dimension
+  name: Agent Email
+  data_type: string
+  expression:
+    primary_key: true
+    lookup: true
+    sql: agent_user_id
+- type: dimension
+  name: Agent Sequence ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: agent_sequence_id
+- type: dimension
+  name: Agent Call Center ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: call_center_id
+  synonyms:
+  - Call Center ID
+- type: dimension
+  name: Agent First Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: first_name
+- type: dimension
+  name: Agent Last Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: last_name
+- type: dimension
+  name: Agent Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: first_name || ' ' || last_name
+- type: dimension
+  name: Agent Hire Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: hire_date
+- type: dimension
+  name: Agent Training Start Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: training_start_date
+- type: dimension
+  name: Agent Termination Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: termination_date
+- type: dimension
+  name: Agent Attrition Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: attrition_type_desc
+- type: dimension
+  name: Agent Attrition Reason
+  data_type: string
+  expression:
+    lookup: true
+    sql: attrition_reason_desc
+- type: dimension
+  name: Agent Attrition Subreason
+  data_type: string
+  expression:
+    lookup: true
+    sql: attrition_subreason_desc
+- type: dimension
+  name: Agent Emp ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: agent_emp_id
+- type: dimension
+  name: Trainer Email
+  data_type: string
+  expression:
+    lookup: true
+    sql: trainer_user_id
+- type: dimension
+  name: Primary Contact Channel
+  data_type: string
+  expression:
+    lookup: true
+    sql: primary_contact_channel_desc
+- type: dimension
+  name: Agent Is Active
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_active
+- type: dimension
+  name: Current Supervisor Email
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_supervisor_user_id
+- type: dimension
+  name: Current Agent Role Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_agent_role_code
+- type: dimension
+  name: Current Phone Skills Set
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_phone_skills_set
+- type: dimension
+  name: Current Secondary Skills Set
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_secondary_skills_set
+- type: dimension
+  name: Current Chat Skills Set
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_chat_skills_set
+- type: dimension
+  name: Current Max Chats
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_max_chats
+- type: dimension
+  name: Current Agent Profile Set
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_agent_profile_set
+- type: dimension
+  name: Agent Is Termination Controllable
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_termination_controllable
+- type: dimension
+  name: Agent Is Termination Regrettable
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_termination_regrettable
+- type: dimension
+  name: Is CS Rebadge
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_cs_rebadge
+- type: dimension
+  name: Agent Physical Location
+  data_type: string
+  expression:
+    lookup: true
+    sql: physical_location

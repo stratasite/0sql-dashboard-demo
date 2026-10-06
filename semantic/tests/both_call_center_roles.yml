@@ -1,0 +1,10 @@
+# The harder half of the same question: ask for the handling site and the
+# escalation site together and the planner has to join the one physical table
+# twice, under two aliases. A single join here would quietly answer "escalated
+# to themselves" for every row.
+name: handling and escalating sites join separately
+projections:
+  - Call Center
+  - Escalating Call Center
+  - Contacts
+assert_regex: (?s)ON\s+\w+\.call_center_id\s*=.*ON\s+\w+\.escalating_call_center_id\s*=

@@ -1,0 +1,91 @@
+# Ported from the full cs-warehouse model (cs/tbl.cs_recontacts.yml).
+name: Recontact
+physical_name: cs_recontact_f
+datasource: cs_duckdb
+description: 'One row per contact of a known account: whether the customer contacted us again within 7
+  days, and how.'
+cost: 105
+fields:
+- type: dimension
+  name: Contact Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: fact_utc_date
+  synonyms:
+  - Date
+- type: dimension
+  name: Contact Code
+  data_type: string
+  expression:
+    primary_key: true
+    lookup: true
+    sql: contact_code
+- type: dimension
+  name: First Recontact Contact Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: first_recontact_contact_code
+- type: dimension
+  name: Account ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: account_id
+  synonyms:
+  - Account ID
+- type: measure
+  name: Recontact Eligible Count
+  data_type: integer
+  expression:
+    sql: sum(is_recontact_eligible_cnt)
+  synonyms:
+  - '# recontact eligible'
+- type: measure
+  name: Recontacts
+  data_type: integer
+  expression:
+    sql: sum(has_recontact_cnt)
+  synonyms:
+  - '# recontacts'
+- type: dimension
+  name: '# Days to Recontact'
+  data_type: integer
+  expression:
+    lookup: true
+    sql: days_to_recontact_cnt
+- type: dimension
+  name: Recontact Method
+  data_type: string
+  expression:
+    lookup: true
+    sql: recontact_method_desc
+- type: dimension
+  name: Is Agent Reconnect Attempted
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_agent_reconnect_attempted
+- type: dimension
+  name: Is Agent Reconnect
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_agent_reconnect
+- type: measure
+  name: Recontact Rate
+  data_type: decimal
+  format: percent:1
+  expression:
+    sql: sum(has_recontact_cnt)/nullif(sum(is_recontact_eligible_cnt*1.00),0)
+  synonyms:
+  - '% RCR'
+  - RCR
+  - repeat contact rate

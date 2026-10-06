@@ -1,0 +1,190 @@
+# Ported from the full cs-warehouse model (help_center/tbl.hc_session_metrics.yml).
+name: HC Session Metrics
+physical_name: cs_hc_sess_sum
+datasource: cs_duckdb
+description: 'Session level help center metrics, daily rollup. Content type, article tags and article
+  owner are multi-value: the set seen during the visit.'
+cost: 45
+fields:
+- type: dimension
+  name: HC Session Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: __time
+  synonyms:
+  - Date
+- type: measure
+  name: Avg. Page View (s)
+  description: Average time spent on page in seconds.
+  data_type: decimal
+  expression:
+    sql: sum(view_dur_secs*1.00) / nullif(sum(views),0)
+- type: measure
+  name: '% HC Bounced'
+  description: Percent help center views that bounced (view duration less than 2 seconds)
+  data_type: decimal
+  format: percent:1
+  expression:
+    sql: sum(bounce_cnt) / nullif(sum(views*1.00),0)
+- type: measure
+  name: '# HC Accounts'
+  description: Number of accounts visiting the help center.
+  data_type: integer
+  expression:
+    sql: sum(accounts)
+- type: dimension
+  name: Country
+  data_type: string
+  expression:
+    lookup: true
+    sql: country_desc
+- type: dimension
+  name: HC Session Country Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: country_iso_code
+- type: dimension
+  name: HC Content Type
+  description: Help center content type (ie article, page, legal)
+  data_type: string
+  expression:
+    lookup: true
+    array: true
+    sql: content_type
+- type: measure
+  name: '# HC Visits'
+  data_type: integer
+  expression:
+    sql: sum(sessions)
+- type: measure
+  name: '% BQS 3d'
+  description: Percent of accounts having a qualified stream within 3 days.
+  data_type: decimal
+  format: percent:1
+  expression:
+    sql: sum(is_tbqs_in_3_days) / nullif(sum(accounts*1.00),0)
+- type: dimension
+  name: Region
+  data_type: string
+  expression:
+    lookup: true
+    sql: region_desc
+- type: measure
+  name: '# HC Views'
+  description: Number of help center page, article, views.
+  data_type: integer
+  expression:
+    sql: sum(views)
+- type: measure
+  name: '% Contacted'
+  description: Percent visits that had an intent to contact and did contact within 40 days.
+  data_type: decimal
+  format: percent:1
+  expression:
+    sql: sum(had_contact_visit)/ nullif(sum(sessions*1.00),0)
+- type: measure
+  name: '% ITC'
+  description: Percent of help center visitors that showed an intent to contact. Clicked start chat or
+    call button.
+  data_type: decimal
+  format: percent:1
+  expression:
+    sql: sum(has_intent_visit) / nullif(sum(sessions*1.00),0)
+- type: dimension
+  name: Article Tags
+  data_type: string
+  expression:
+    lookup: true
+    array: true
+    sql: article_tags
+- type: measure
+  name: '# Feedback: Did Not Address'
+  description: Feedback that the article did not address the issue.
+  data_type: integer
+  expression:
+    sql: sum(did_not_address)
+- type: measure
+  name: '# Feedback No'
+  data_type: integer
+  expression:
+    sql: sum(feedback_no)
+- type: measure
+  name: '# Feedback Yes'
+  data_type: integer
+  expression:
+    sql: sum(feedback_yes)
+- type: measure
+  name: '# Feedback: Steps Did Not Resolve'
+  description: Help center article steps did not resolve issue.
+  data_type: integer
+  expression:
+    sql: sum(steps_did_not_resolve)
+- type: measure
+  name: '# Feedback: Wording Was Confusing'
+  description: Help center article feedback that the wording was confusing
+  data_type: integer
+  expression:
+    sql: sum(wording_was_confusing)
+- type: dimension
+  name: HC Member Status
+  description: help center visitor member status
+  data_type: string
+  expression:
+    lookup: true
+    sql: member_status
+- type: dimension
+  name: HC Localization
+  description: Help center localization
+  data_type: string
+  expression:
+    lookup: true
+    sql: localization_id
+- type: measure
+  name: '# HC Visitors'
+  description: Number of help center visitors including non-members.
+  data_type: integer
+  expression:
+    sql: sum(visitors)
+- type: dimension
+  name: Subregion
+  description: Subregions rolled up from contact origin country
+  data_type: string
+  expression:
+    lookup: true
+    sql: subregion_desc
+- type: dimension
+  name: HC Traffic Source
+  description: help center traffic source parsed from referrer url
+  data_type: string
+  expression:
+    lookup: true
+    sql: traffic_source
+- type: dimension
+  name: Article Owner
+  data_type: string
+  expression:
+    lookup: true
+    array: true
+    sql: article_owner
+- type: dimension
+  name: eStaff Subregion
+  description: Estaff style subregion grouping
+  data_type: string
+  expression:
+    lookup: true
+    sql: estaff_subregion_desc
+- type: measure
+  name: '% Helpfulness'
+  description: Percent of users who said content was helpful out of all feedback provided
+  data_type: decimal
+  format: percent:1
+  expression:
+    sql: sum(feedback_yes*1.00) / nullif(sum(feedback_yes+feedback_no),0)

@@ -1,0 +1,53 @@
+# The membership side: who was contacting, and what they were subscribed to on
+# the day they did it.
+datasource: cs_duckdb
+
+subscription_to_account:
+  left: Subscription
+  right: Account
+  sql: "left.account_id = right.account_id"
+  cardinality: many_to_one
+  join: left
+
+subscription_to_signup_country:
+  left: Subscription
+  right: Signup Country
+  sql: "left.country_iso_code = right.country_iso_code"
+  cardinality: many_to_one
+  join: left
+
+membership_day_to_subscription:
+  left: Membership Day
+  right: Subscription
+  sql: "left.subscrn_id = right.subscrn_id and left.account_id = right.account_id"
+  cardinality: many_to_one
+  join: left
+
+membership_day_to_country:
+  left: Membership Day
+  right: Country
+  sql: "left.country_iso_code = right.country_iso_code"
+  cardinality: many_to_one
+  join: left
+
+membership_day_agg_to_country:
+  left: Membership Day Agg
+  right: Country
+  sql: "left.country_iso_code = right.country_iso_code"
+  cardinality: many_to_one
+  join: left
+
+contact_to_subscription:
+  left: Contact
+  right: Subscription
+  sql: "left.subscrn_id = right.subscrn_id and left.account_id = right.account_id"
+  cardinality: many_to_one
+  join: left
+
+# Snapshot grain: the membership as it stood on the day of the contact.
+contact_to_membership_day:
+  left: Contact
+  right: Membership Day
+  sql: "left.subscrn_id = right.subscrn_id and left.account_id = right.account_id and left.fact_utc_date = right.snapshot_date"
+  cardinality: many_to_one
+  join: left

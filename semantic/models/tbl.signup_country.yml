@@ -1,0 +1,57 @@
+# Ported from the full cs-warehouse model (common/tbl.signup_country.yml).
+name: Signup Country
+physical_name: geo_country_d
+datasource: cs_duckdb
+description: 'Role of the country table: the country a subscription signed up in.'
+cost: 150
+fields:
+- type: dimension
+  name: Signup Country Code
+  data_type: string
+  expression:
+    primary_key: true
+    lookup: true
+    sql: country_iso_code
+- type: dimension
+  name: Signup Country
+  data_type: string
+  expression:
+    lookup: true
+    sql: country_desc
+- type: dimension
+  name: Signup Country Full
+  data_type: string
+  expression:
+    lookup: true
+    sql: country_full_desc
+- type: dimension
+  name: Signup eStaff Subregion
+  data_type: string
+  expression:
+    lookup: true
+    sql: estaff_subregion_desc
+- type: dimension
+  name: Signup Finance Subregion
+  data_type: string
+  expression:
+    lookup: true
+    sql: finance_subregion_desc
+- type: dimension
+  name: Signup Country Primary Language Code
+  description: Primary language of a given country
+  data_type: string
+  expression:
+    lookup: true
+    sql: primary_language_code
+- type: dimension
+  name: Signup Subregion
+  data_type: string
+  expression:
+    lookup: true
+    sql: subregion_desc
+- type: dimension
+  name: Signup Region
+  data_type: string
+  expression:
+    lookup: true
+    sql: region_rollup_desc

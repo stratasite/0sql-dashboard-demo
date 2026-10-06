@@ -1,0 +1,27 @@
+# The other facts at or near contact grain.
+datasource: cs_duckdb
+
+# One row per contact on both sides, so this cannot fan out.
+contact_to_recontact:
+  left: Contact
+  right: Recontact
+  sql: "left.contact_code = right.contact_code"
+  cardinality: one_to_one
+  join: left
+
+contact_to_chat_transcript:
+  left: Contact
+  right: Chat Transcript
+  sql: "left.bpo_contact_code = right.chat_code"
+  cardinality: one_to_one
+  join: left
+
+# Many actions per ticket, so this one *does* fan out: joining it multiplies
+# contact rows. `allow_measure_expansion` is what lets the planner keep contact
+# measures correct across it.
+ticket_action_to_contact:
+  left: Ticket Action
+  right: Contact
+  sql: "left.ticket_code = right.first_ticket_id"
+  cardinality: many_to_one
+  allow_measure_expansion: true

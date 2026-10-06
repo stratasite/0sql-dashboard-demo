@@ -1,0 +1,181 @@
+# Ported from the full cs-warehouse model (ab/tbl.ab_test_details.yml).
+name: AB Test Details
+physical_name: ab_test_detail_d_v2
+datasource: cs_duckdb
+description: A/B test metadata.
+cost: 100
+fields:
+- type: dimension
+  name: AB Test ID
+  data_type: integer
+  expression:
+    primary_key: true
+    lookup: true
+    sql: test_id
+- type: dimension
+  name: AB Test Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: name
+- type: dimension
+  name: AB Test Description
+  data_type: string
+  expression:
+    sql: description
+- type: dimension
+  name: AB Test Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: test_type
+- type: dimension
+  name: AB Alloc ID Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: alloc_id_type
+- type: dimension
+  name: AB Test Default Cell
+  data_type: integer
+  expression:
+    lookup: true
+    sql: default_cell
+- type: dimension
+  name: AB Test Is Enabled
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_enabled
+- type: dimension
+  name: AB Test Cells
+  data_type: string
+  expression:
+    lookup: true
+    sql: cells
+- type: dimension
+  name: AB Test Exclusions
+  data_type: string
+  expression:
+    sql: test_exclusions
+- type: dimension
+  name: AB Test Impact Areas
+  data_type: string
+  expression:
+    lookup: true
+    sql: impact_areas
+- type: dimension
+  name: AB Test Platforms
+  data_type: string
+  expression:
+    lookup: true
+    sql: platforms
+- type: dimension
+  name: AB Test Properties
+  data_type: string
+  expression:
+    sql: properties
+- type: dimension
+  name: AB Test Product Managers
+  data_type: string
+  expression:
+    lookup: true
+    sql: product_managers
+- type: dimension
+  name: AB Test Analysts
+  data_type: string
+  expression:
+    lookup: true
+    sql: analysts
+- type: dimension
+  name: AB Test Engineers
+  data_type: string
+  expression:
+    lookup: true
+    sql: engineers
+- type: dimension
+  name: AB Test Created On (utc)
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: created_utc_date
+- type: dimension
+  name: AB Test Disabled On (utc)
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: disabled_utc_date
+- type: dimension
+  name: AB Test Results Summary
+  data_type: string
+  expression:
+    sql: results_summary
+- type: dimension
+  name: AB Test Previous Tests
+  data_type: string
+  expression:
+    lookup: true
+    sql: previous_tests
+- type: dimension
+  name: AB Test Metric Impacts
+  data_type: string
+  expression:
+    sql: metric_impacts
+- type: dimension
+  name: AB Test Is Inconclusive
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_inconclusive
+- type: dimension
+  name: AB Test Is Blown
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_blown
+- type: dimension
+  name: AB Test Is Will Launch
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_will_launch
+- type: dimension
+  name: AB Test Launch Cells
+  data_type: string
+  expression:
+    lookup: true
+    sql: launch_cells
+- type: dimension
+  name: AB Test Launch Notes
+  data_type: string
+  expression:
+    sql: launch_notes
+- type: dimension
+  name: AB Test Launch Reasons
+  data_type: string
+  expression:
+    lookup: true
+    sql: launch_reasons
+- type: dimension
+  name: AB Test Other Launch Reason
+  data_type: string
+  expression:
+    lookup: true
+    sql: other_launch_reason
+- type: dimension
+  name: AB Test Test Links
+  data_type: string
+  expression:
+    sql: test_links

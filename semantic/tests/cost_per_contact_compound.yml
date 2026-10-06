@@ -1,0 +1,10 @@
+# Cost Per Contact USD is a compound: it names two other measures rather than
+# columns, and the obvious failure mode for a formula over aggregates is a
+# second pass over the fact — a subquery or a self-join that double counts the
+# moment a dimension is added. This asserts it stays one aggregate over one
+# scan, with the divide-by-zero guard intact.
+name: cost per contact is one pass over the fact
+projections:
+  - BPO
+  - Cost Per Contact USD
+assert_regex: (?s)\(sum\(coalesce.*csr1_cost_usd.*telecom_cost_usd.*\)\) \* 1\.0 / nullif\(sum\(.*answered_cnt.*\), 0\).*FROM\s+cs_contact_f

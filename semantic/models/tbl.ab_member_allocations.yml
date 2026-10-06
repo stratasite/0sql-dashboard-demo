@@ -1,0 +1,87 @@
+# Ported from the full cs-warehouse model (ab/tbl.ab_member_allocations.yml).
+name: AB Member Allocations
+physical_name: ab_member_alloc_d
+datasource: cs_duckdb
+description: Allocations of member accounts into A/B test cells.
+cost: 100
+fields:
+- type: dimension
+  name: AB Allocation Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: alloc_utc_date
+  synonyms:
+  - Date
+- type: dimension
+  name: Account ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: account_id
+- type: dimension
+  name: Subscription ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: subscrn_id
+- type: dimension
+  name: AB Test Is Tester
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_tester
+- type: dimension
+  name: AB Test Cell
+  data_type: integer
+  expression:
+    lookup: true
+    sql: test_cell_nbr
+- type: dimension
+  name: AB Allocation Country Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: alloc_country_iso_code
+- type: dimension
+  name: AB Alloc Membership Status
+  data_type: integer
+  expression:
+    lookup: true
+    sql: alloc_membership_status_id
+- type: dimension
+  name: AB Test ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: test_id
+- type: measure
+  name: '# AB Members Allocated'
+  data_type: integer
+  expression:
+    sql: count(distinct account_id)
+- type: measure
+  name: '# Total AB Members Allocated'
+  description: Total accounts allocated across all time
+  data_type: integer
+  exclusion_type: exclude
+  exclusions:
+  - type: dimension
+    filter: ignore
+    entities:
+    - Date
+  expression:
+    sql: count(distinct account_id)
+- type: measure
+  name: '% AB Member Contact Rate'
+  description: Percent of allocated accounts in an AB Member test contacting CS
+  data_type: decimal
+  format: percent:3
+  expression:
+    sql: '[Answered Count]/([# AB Members Allocated]*1.000)'

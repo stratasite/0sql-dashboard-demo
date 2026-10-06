@@ -1,0 +1,136 @@
+# Ported from the full cs-warehouse model (cs/tbl.current_manager.yml).
+name: Current Manager
+physical_name: cs_agent_d
+datasource: cs_duckdb
+description: 'Role of the agent table: the CURRENT manager (the current supervisor''s supervisor).'
+cost: 60
+fields:
+- type: dimension
+  name: Current Manager Email
+  data_type: string
+  expression:
+    primary_key: true
+    lookup: true
+    sql: agent_user_id
+- type: dimension
+  name: Current Manager Sequence ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: agent_sequence_id
+- type: dimension
+  name: Current Manager Call Center ID
+  data_type: string
+  expression:
+    lookup: true
+    sql: call_center_id
+  synonyms:
+  - Call Center ID
+- type: dimension
+  name: Current Manager First Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: first_name
+- type: dimension
+  name: Current Manager Last Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: last_name
+- type: dimension
+  name: Current Manager
+  data_type: string
+  expression:
+    lookup: true
+    sql: first_name || ' ' || last_name
+- type: dimension
+  name: Current Manager Hire Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: hire_date
+- type: dimension
+  name: Current Manager Training Start Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: training_start_date
+- type: dimension
+  name: Current Manager Termination Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: termination_date
+- type: dimension
+  name: Current Manager Attrition Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: attrition_type_desc
+- type: dimension
+  name: Current Manager Attrition Reason
+  data_type: string
+  expression:
+    lookup: true
+    sql: attrition_reason_desc
+- type: dimension
+  name: Current Manager Attrition Subreason
+  data_type: string
+  expression:
+    lookup: true
+    sql: attrition_subreason_desc
+- type: dimension
+  name: Current Manager Emp ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: agent_emp_id
+- type: dimension
+  name: Current Manager Trainer Email
+  data_type: string
+  expression:
+    lookup: true
+    sql: trainer_user_id
+- type: dimension
+  name: Current Manager Is Active
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_active
+- type: dimension
+  name: Current Manager Is Termination Controllable
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_termination_controllable
+- type: dimension
+  name: Current Manager Is Termination Regrettable
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_termination_regrettable
+- type: dimension
+  name: Current Manager Physical Location
+  data_type: string
+  expression:
+    lookup: true
+    sql: physical_location

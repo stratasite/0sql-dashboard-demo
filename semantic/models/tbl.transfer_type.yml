@@ -1,0 +1,29 @@
+# Transfer Type dimension — whether and how a contact was transferred.
+datasource: cs_duckdb
+name: Transfer Type
+physical_name: cs_transfer_type_d
+description: Whether and how a contact was transferred, and the direction it rolls up to.
+cost: 50
+
+fields:
+  - type: dimension
+    name: Transfer Type ID
+    data_type: string
+    description: Transfer code (NT, TI-ESC, TI-LANG, TO-WARM, TO-COLD).
+    synonyms: [transfer code]
+    expression:
+      sql: transfer_type_id
+      lookup: true
+      primary_key: true
+
+  # Several measures on Contact exclude TRANSFER_OUT through this: the site that
+  # handed a contact off did not do the work, so its time and cost do not belong
+  # in a per-contact average.
+  - type: dimension
+    name: Major Transfer Type
+    data_type: string
+    description: Transfer direction — NO_TRANSFER, TRANSFER_IN, TRANSFER_OUT.
+    synonyms: [transfer type, transfer direction, transferred]
+    expression:
+      sql: major_transfer_type_desc
+      lookup: true

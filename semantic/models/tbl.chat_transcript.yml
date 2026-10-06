@@ -1,0 +1,41 @@
+# Ported from the full cs-warehouse model (cs/tbl.cs_chat_transcripts.yml).
+name: Chat Transcript
+physical_name: cs_chat_transcript
+datasource: cs_duckdb
+description: 'One row per chat contact: the whole conversation as a JSON array of messages (seq, speaker,
+  text), in the original language and in English.'
+cost: 150
+fields:
+- type: dimension
+  name: Chat Transcript Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: dateint
+  synonyms:
+  - Date
+- type: dimension
+  name: CS Transcript (Original)
+  description: Original transcript in the customers preferred language
+  data_type: string
+  expression:
+    sql: original_message_text
+- type: dimension
+  name: CS Transcript
+  description: English translated transcript where available otherwise its the original transcript
+  data_type: string
+  expression:
+    sql: original_or_translated_text
+- type: dimension
+  name: CS Has Translation
+  description: 1/0 on whether original transcript was translated.
+  data_type: integer
+  expression:
+    lookup: true
+    sql: has_translation

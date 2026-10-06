@@ -1,0 +1,303 @@
+# Ported from the full cs-warehouse model (memberships/tbl.membership_day_agg.yml).
+name: Membership Day Agg
+physical_name: membership_day_agg
+datasource: cs_duckdb
+description: Daily membership snapshot pre-aggregated by country, plan and payment attributes.
+cost: 50
+snapshot: Date
+fields:
+- type: dimension
+  name: Membership Agg Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: snapshot_date
+  synonyms:
+  - Date
+- type: dimension
+  name: Membership Agg Country Code
+  data_type: string
+  expression:
+    lookup: true
+    sql: country_iso_code
+- type: dimension
+  name: Paid Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: paid_category
+- type: dimension
+  name: Membership Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: memb_category
+- type: dimension
+  name: Subscription Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: subscription_type
+- type: dimension
+  name: Is Rejoin
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_rejoin
+- type: dimension
+  name: Is Fraud
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_fraud
+- type: dimension
+  name: Is PPP Signup
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_ppp_signup
+- type: dimension
+  name: Signup Paid Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_paid_category
+- type: dimension
+  name: Signup Subscription Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_subscription_type
+- type: dimension
+  name: Acquisition Partner
+  data_type: string
+  expression:
+    lookup: true
+    sql: acq_partner_desc
+- type: dimension
+  name: Signup Payment Method
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_pmt_method
+- type: dimension
+  name: Signup Payment Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_pmt_type
+- type: dimension
+  name: Signup Payment Brand
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_pmt_brand
+- type: dimension
+  name: Signup Estaff Device Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_estaff_device_category
+- type: dimension
+  name: Signup Estaff Device Major Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_estaff_device_major_category
+- type: dimension
+  name: Signup Plan Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_plan_category
+- type: dimension
+  name: Signup Plan Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_plan_name
+- type: dimension
+  name: Signup Plan Name Detailed
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_plan_name_detailed
+- type: dimension
+  name: Signup Price Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: signup_price_category
+- type: dimension
+  name: Current Subscription Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_subscription_type
+- type: dimension
+  name: Billing Partner
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_billing_partner
+- type: dimension
+  name: Payment Method
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_pmt_method
+- type: dimension
+  name: Payment Type
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_pmt_type
+- type: dimension
+  name: Payment Brand
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_pmt_brand
+- type: dimension
+  name: Plan Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_plan_category
+- type: dimension
+  name: Plan Name
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_plan_name
+- type: dimension
+  name: Plan Name Detailed
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_plan_name_detailed
+- type: dimension
+  name: Price Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: current_price_category
+- type: measure
+  name: Can Streams
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(can_stream_cnt)
+- type: measure
+  name: On Holds
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(on_hold_cnt)
+- type: measure
+  name: Paid On Holds
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(paid_on_hold_cnt)
+- type: measure
+  name: Memberships
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(membership_cnt)
+- type: measure
+  name: Free Memberships
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(free_membership_cnt)
+- type: measure
+  name: Free Trial Memberships
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(free_trial_membership_cnt)
+- type: measure
+  name: Free Discount Memberships
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(free_discount_membership_cnt)
+- type: measure
+  name: Paid Memberships
+  data_type: integer
+  snapshot: ending
+  expression:
+    sql: sum(paid_membership_cnt)
+- type: measure
+  name: Gross Signups
+  data_type: integer
+  expression:
+    sql: sum(gross_signup_cnt)
+- type: measure
+  name: Bundle Adjusted Signups
+  data_type: integer
+  expression:
+    sql: sum(bundle_adjusted_signup_cnt)
+- type: measure
+  name: Effective Signups
+  data_type: integer
+  expression:
+    sql: sum(effective_signup_cnt)
+- type: measure
+  name: Membership Starts
+  data_type: integer
+  expression:
+    sql: sum(membership_start_cnt)
+- type: measure
+  name: Voluntary Cancels
+  data_type: integer
+  expression:
+    sql: sum(vol_cancel_cnt)
+- type: measure
+  name: Hold Starts
+  data_type: integer
+  expression:
+    sql: sum(hold_start_cnt)
+- type: measure
+  name: Grace Starts
+  data_type: integer
+  expression:
+    sql: sum(grace_start_cnt)
+- type: measure
+  name: Paid Gross Signups
+  data_type: integer
+  expression:
+    sql: sum(paid_gross_signup_cnt)
+- type: measure
+  name: Paid Bundle Adjusted Signups
+  data_type: integer
+  expression:
+    sql: sum(paid_bundle_adjusted_signup_cnt)
+- type: measure
+  name: Paid Effective Signups
+  data_type: integer
+  expression:
+    sql: sum(paid_effective_signup_cnt)
+- type: measure
+  name: Paid Membership Starts
+  data_type: integer
+  expression:
+    sql: sum(paid_membership_start_cnt)
+- type: measure
+  name: Paid Voluntary Cancels
+  data_type: integer
+  expression:
+    sql: sum(paid_vol_cancel_cnt)
+- type: measure
+  name: Paid Hold Starts
+  data_type: integer
+  expression:
+    sql: sum(paid_hold_start_cnt)

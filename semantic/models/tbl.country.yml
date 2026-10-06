@@ -1,0 +1,70 @@
+# Country dimension — the country a contact came from, with its rollups.
+datasource: cs_duckdb
+name: Country
+physical_name: geo_country_d
+description: Countries with their regional rollups, joined to the country a contact originated from.
+cost: 100
+
+fields:
+  - type: dimension
+    name: Country Code
+    data_type: string
+    description: ISO country code of the contact's origin.
+    expression:
+      sql: country_iso_code
+      lookup: true
+      primary_key: true
+
+  - type: dimension
+    name: Country
+    data_type: string
+    description: Country the contact originated from. Not the call center's country.
+    expression:
+      sql: country_desc
+      lookup: true
+
+  - type: dimension
+    name: Country Full
+    data_type: string
+    expression:
+      sql: country_full_desc
+      lookup: true
+
+  - type: dimension
+    name: eStaff Subregion
+    data_type: string
+    expression:
+      sql: estaff_subregion_desc
+      lookup: true
+
+  - type: dimension
+    name: Finance Subregion
+    data_type: string
+    expression:
+      sql: finance_subregion_desc
+      lookup: true
+
+  - type: dimension
+    name: Country Primary Language Code
+    data_type: string
+    description: Primary language of a given country.
+    expression:
+      sql: primary_language_code
+      lookup: true
+
+  - type: dimension
+    name: Subregion
+    data_type: string
+    description: Subregion of the contact's origin country.
+    expression:
+      sql: subregion_desc
+      lookup: true
+
+  - type: dimension
+    name: Region
+    data_type: string
+    description: Region of the contact's origin country. Call Center Region is the site's region, which is a different thing.
+    synonyms: [customer region, origin region]
+    expression:
+      sql: region_rollup_desc
+      lookup: true

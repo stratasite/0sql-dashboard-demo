@@ -1,0 +1,119 @@
+# Ported from the full cs-warehouse model (ab/tbl.ab_nm_allocations.yml).
+name: AB NM Allocations
+physical_name: ab_nm_alloc_f
+datasource: cs_duckdb
+description: Allocations of non-members (visitors) into A/B test cells.
+cost: 105
+fields:
+- type: dimension
+  name: AB NM Allocation Date
+  data_type: date
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: allocation_utc_date
+  synonyms:
+  - Date
+- type: dimension
+  name: AB Test ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: test_id
+- type: dimension
+  name: AB Test Cell
+  data_type: integer
+  expression:
+    lookup: true
+    sql: cell_id
+- type: dimension
+  name: Account ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: account_id
+- type: dimension
+  name: Subscription ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: subscrn_id
+- type: dimension
+  name: AB Alloc Membership Status
+  description: Membership status at the time of non-member (NM) allocation
+  data_type: integer
+  expression:
+    lookup: true
+    sql: alloc_membership_status
+- type: dimension
+  name: AB Test Is InApp
+  description: True if non-member is allocated in app
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_inapp
+- type: dimension
+  name: AB Test Is MoP Successful
+  data_type: integer
+  expression:
+    lookup: true
+    sql: is_mop_successful
+- type: dimension
+  name: AB Test Platform
+  data_type: string
+  expression:
+    lookup: true
+    sql: platform
+- type: dimension
+  name: AB Test Device Type ID
+  data_type: integer
+  expression:
+    lookup: true
+    sql: device_type_id
+- type: dimension
+  name: AB Test Device Category
+  data_type: string
+  expression:
+    lookup: true
+    sql: device_category
+- type: dimension
+  name: AB Test MoP Category
+  data_type: integer
+  expression:
+    lookup: true
+    sql: mop_category
+- type: measure
+  name: '# AB Non-Members Allocated'
+  data_type: integer
+  exclusion_type: exclude_all_except
+  exclusions:
+  - type: universe
+    filter: ignore
+    entities:
+    - AB NM Allocations
+  expression:
+    sql: count(distinct account_id)
+- type: measure
+  name: '# Total AB Non-Members Allocated'
+  description: Total accounts allocated across all time
+  data_type: integer
+  exclusion_type: exclude
+  exclusions:
+  - type: dimension
+    filter: ignore
+    entities:
+    - Date
+  expression:
+    sql: count(distinct account_id)
+- type: measure
+  name: '% AB NM Contact Rate'
+  description: Percent of allocated non-members accounts contacting CS
+  data_type: decimal
+  format: percent:3
+  expression:
+    sql: '[Answered Count]/([# AB Non-Members Allocated]*1.000)'

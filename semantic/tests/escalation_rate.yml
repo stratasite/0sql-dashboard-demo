@@ -1,0 +1,11 @@
+# Escalation Rate's denominator references Major Transfer Type, which lives on
+# another table. Nothing in a spec that asks for "Escalation Rate by Call Center"
+# mentions transfer types at all, yet planning it correctly requires joining
+# cs_transfer_type_d — a join the caller never asked for and cannot see. If that
+# join were dropped the measure would still return a number, just over every
+# contact that arrived rather than the ones this site actually handled.
+name: escalation rate joins transfer type for its denominator
+projections:
+  - Call Center
+  - Escalation Rate
+assert_regex: (?s)sum\(.*is_assistance_requested.*major_transfer_type_desc.* <> .TRANSFER_OUT.*answered_cnt.*LEFT JOIN cs_transfer_type_d
