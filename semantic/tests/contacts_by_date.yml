@@ -1,0 +1,9 @@
+# Date is mapped on every fact table. A query that is already on cs_contact_f
+# must take Date from there (fact_utc_date) and never reach for another
+# table's Date through a join. The regex matches the whole statement, so a
+# JOIN anywhere in it fails the test.
+name: contacts by date stays on the fact
+projections:
+  - Date
+  - Contacts
+assert_regex: (?s)^\s*SELECT\s+T0\."fact_utc_date" AS "Date",\s+count\(\*\) AS "Contacts"\s+FROM\s+cs_contact_f T0\s+GROUP BY\s+T0\."fact_utc_date"\s*$

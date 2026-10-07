@@ -21,6 +21,19 @@ fields:
   synonyms:
   - Date
 - type: dimension
+  name: Date
+  data_type: date
+  description: The table's own date, the same column as Chat Transcript Date. Every fact table maps Date, so a query can take it from whichever table it is already on.
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: dateint
+- type: dimension
   name: CS Transcript (Original)
   description: Original transcript in the customers preferred language
   data_type: string

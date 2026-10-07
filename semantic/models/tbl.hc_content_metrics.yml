@@ -21,6 +21,19 @@ fields:
   synonyms:
   - Date
 - type: dimension
+  name: Date
+  data_type: date
+  description: The table's own date, the same column as HC Content Date. Every fact table maps Date, so a query can take it from whichever table it is already on.
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: __time
+- type: dimension
   name: HC Content
   description: Help center content name for articles, pages, accordions, legal etc.
   data_type: string

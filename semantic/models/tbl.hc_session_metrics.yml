@@ -20,6 +20,19 @@ fields:
     sql: __time
   synonyms:
   - Date
+- type: dimension
+  name: Date
+  data_type: date
+  description: The table's own date, the same column as HC Session Date. Every fact table maps Date, so a query can take it from whichever table it is already on.
+  grains:
+  - day
+  - week
+  - month
+  - quarter
+  - year
+  expression:
+    lookup: true
+    sql: __time
 - type: measure
   name: Avg. Page View (s)
   description: Average time spent on page in seconds.

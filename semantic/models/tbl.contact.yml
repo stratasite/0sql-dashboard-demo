@@ -41,6 +41,15 @@ fields:
       lookup: true
 
   - type: dimension
+    name: Date
+    data_type: date
+    description: The table's own date, the same column as Contact Date. Every fact table maps Date, so a query can take it from whichever table it is already on.
+    grains: [day, week, month, quarter, year]
+    expression:
+      sql: fact_utc_date
+      lookup: true
+
+  - type: dimension
     name: Contact Start Time
     data_type: date_time
     grains: [day, week, month, quarter, year]
