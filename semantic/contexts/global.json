@@ -1,0 +1,6 @@
+{
+  "email": "mo@example.com",
+  "groups": [
+    { "name": "CS Finance", "tags": ["region:AMER", "region:EMEA", "region:APAC"] }
+  ]
+}

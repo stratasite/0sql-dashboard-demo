@@ -1,0 +1,6 @@
+{
+  "email": "dana@example.com",
+  "groups": [
+    { "name": "CS Ops AMER", "tags": ["region:AMER"] }
+  ]
+}
